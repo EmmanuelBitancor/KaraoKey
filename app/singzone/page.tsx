@@ -2,13 +2,21 @@
 
 import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { Suspense, useState, useRef, useEffect } from "react";
+import { Suspense, useState, useRef, useEffect, useCallback } from "react";
 
 interface QueuedSong {
   code: string;
   title: string;
   artist: string;
   youtubeId: string;
+}
+
+interface YouTubePlayer {
+  destroy: () => void;
+  getCurrentTime: () => number;
+  getDuration: () => number;
+  playVideo: () => void;
+  pauseVideo: () => void;
 }
 
 const SAMPLE_YOUTUBE_ID = "UkX9XP4urcM";
@@ -28,9 +36,8 @@ function SingzoneContent() {
   const [videoProgress, setVideoProgress] = useState(0);
   const [videoDuration, setVideoDuration] = useState(240);
   const [isPlaying, setIsPlaying] = useState(false);
-  const playerRef = useRef<any>(null);
+  const playerRef = useRef<YouTubePlayer | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
-  const redirectTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   // Load YouTube IFrame API
   useEffect(() => {
@@ -41,6 +48,22 @@ function SingzoneContent() {
       firstScriptTag.parentNode?.insertBefore(tag, firstScriptTag);
     }
   }, []);
+
+  const playNext = useCallback(() => {
+    if (queue.length > 0) {
+      const next = queue[0];
+      setCurrentSong({ code: next.code, title: next.title, artist: next.artist });
+      setQueue(queue.slice(1));
+      router.replace(
+        `/singzone?code=${next.code}&title=${encodeURIComponent(next.title)}&artist=${encodeURIComponent(next.artist)}`
+      );
+    } else {
+      setIsExiting(true);
+      setTimeout(() => {
+        router.push("/");
+      }, 500);
+    }
+  }, [queue, router]);
 
   // Initialize YouTube player
   useEffect(() => {
@@ -57,7 +80,7 @@ function SingzoneContent() {
             loop: 0,
           },
           events: {
-            onStateChange: (event: any) => {
+            onStateChange: (event: { data: number }) => {
               if (event.data === window.YT.PlayerState.PLAYING) {
                 setIsPlaying(true);
               } else if (
@@ -92,7 +115,7 @@ function SingzoneContent() {
         playerRef.current.destroy();
       }
     };
-  }, [currentSong.code]);
+  }, [currentSong.code, playNext]);
 
   // Poll player state for progress
   useEffect(() => {
@@ -159,22 +182,6 @@ function SingzoneContent() {
     const newQueue = [...queue];
     newQueue.splice(index, 1);
     setQueue(newQueue);
-  };
-
-  const playNext = () => {
-    if (queue.length > 0) {
-      const next = queue[0];
-      setCurrentSong({ code: next.code, title: next.title, artist: next.artist });
-      setQueue(queue.slice(1));
-      router.replace(
-        `/singzone?code=${next.code}&title=${encodeURIComponent(next.title)}&artist=${encodeURIComponent(next.artist)}`
-      );
-    } else {
-      setIsExiting(true);
-      setTimeout(() => {
-        router.push("/");
-      }, 500);
-    }
   };
 
   return (
@@ -354,9 +361,31 @@ function SingzoneContent() {
 }
 
 // Extend Window interface for YouTube API
+interface YouTubePlayerConstructor {
+  new (element: HTMLElement, options: {
+    videoId: string;
+    playerVars?: Record<string, number>;
+    events?: {
+      onReady?: () => void;
+      onStateChange?: (event: { data: number }) => void;
+    };
+  }): YouTubePlayer;
+}
+
+interface YouTubeAPI {
+  Player: YouTubePlayerConstructor;
+  PlayerState: {
+    PLAYING: number;
+    PAUSED: number;
+    ENDED: number;
+    BUFFERING: number;
+    CUED: number;
+  };
+}
+
 declare global {
   interface Window {
-    YT: any;
+    YT: YouTubeAPI;
     onYouTubeIframeAPIReady: () => void;
   }
 }
