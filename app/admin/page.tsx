@@ -35,6 +35,8 @@ export default function Admin() {
 
   // Modal state
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [editingSong, setEditingSong] = useState<Song | null>(null);
+  const isEditing = editingSong !== null;
 
   const getNextCode = (): string => {
     if (songs.length === 0) return "0001";
@@ -52,11 +54,23 @@ export default function Admin() {
     setYoutubeId("");
     setSubmitError(null);
     setSubmitSuccess(false);
+    setEditingSong(null);
   };
 
   const openAddModal = () => {
     resetForm();
     setCode(getNextCode());
+    setIsAddModalOpen(true);
+  };
+
+  const openEditModal = (song: Song) => {
+    setEditingSong(song);
+    setCode(song.code);
+    setTitle(song.title);
+    setArtist(song.artist);
+    setYoutubeId(song.youtube_id);
+    setSubmitError(null);
+    setSubmitSuccess(false);
     setIsAddModalOpen(true);
   };
 
@@ -135,25 +149,50 @@ export default function Admin() {
       return;
     }
 
-    const { error } = await supabase.from("songs").insert({
-      code,
-      title: title.trim(),
-      artist: artist.trim(),
-      youtube_id: youtubeId.trim() || "UkX9XP4urcM",
-    });
+    const youtubeIdValue = youtubeId.trim() || "UkX9XP4urcM";
 
-    if (error) {
-      if (error.code === "23505") {
-        setSubmitError(`Song with code "${code}" already exists`);
-      } else {
+    if (isEditing && editingSong) {
+      // Update existing song
+      const { error } = await supabase
+        .from("songs")
+        .update({
+          title: title.trim(),
+          artist: artist.trim(),
+          youtube_id: youtubeIdValue,
+        })
+        .eq("code", editingSong.code);
+
+      if (error) {
         setSubmitError(error.message);
+      } else {
+        setSubmitSuccess(true);
+        fetchSongs();
+        setTimeout(() => {
+          closeAddModal();
+        }, 1500);
       }
     } else {
-      setSubmitSuccess(true);
-      fetchSongs();
-      setTimeout(() => {
-        closeAddModal();
-      }, 1500);
+      // Insert new song
+      const { error } = await supabase.from("songs").insert({
+        code,
+        title: title.trim(),
+        artist: artist.trim(),
+        youtube_id: youtubeIdValue,
+      });
+
+      if (error) {
+        if (error.code === "23505") {
+          setSubmitError(`Song with code "${code}" already exists`);
+        } else {
+          setSubmitError(error.message);
+        }
+      } else {
+        setSubmitSuccess(true);
+        fetchSongs();
+        setTimeout(() => {
+          closeAddModal();
+        }, 1500);
+      }
     }
 
     setSubmitting(false);
@@ -375,6 +414,12 @@ export default function Admin() {
                       </td>
                       <td className="px-4 py-3 text-right">
                         <button
+                          onClick={() => openEditModal(song)}
+                          className="text-blue-400/70 hover:text-blue-500 mr-3 text-sm transition"
+                        >
+                          Edit
+                        </button>
+                        <button
                           onClick={() => handleDelete(song.code)}
                           disabled={deletingCode === song.code}
                           className="text-red-400/70 hover:text-red-500 disabled:opacity-50 text-sm transition"
@@ -390,12 +435,12 @@ export default function Admin() {
           )}
         </div>
 
-        {/* Add Song Modal */}
+        {/* Add/Edit Song Modal */}
         {isAddModalOpen && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70">
             <div className="bg-[#1a1a1a] rounded-lg border border-white/10 w-full max-w-md mx-4 p-6">
               <div className="flex items-center justify-between mb-6">
-                <h2 className="text-xl font-bold">Add New Song</h2>
+                <h2 className="text-xl font-bold">{isEditing ? "Edit Song" : "Add New Song"}</h2>
                 <button
                   onClick={closeAddModal}
                   className="text-white/50 hover:text-white transition"
@@ -419,7 +464,9 @@ export default function Admin() {
                     className="w-full rounded-lg bg-white/5 px-4 py-2 text-[#FF6B00] font-bold cursor-not-allowed outline-none"
                     maxLength={4}
                   />
-                  <p className="text-white/40 text-xs mt-1">Auto-generated</p>
+                  {isEditing ? null : (
+                    <p className="text-white/40 text-xs mt-1">Auto-generated</p>
+                  )}
                 </div>
 
                 <div>
@@ -470,7 +517,7 @@ export default function Admin() {
 
                 {submitSuccess && (
                   <p className="text-green-400 text-sm">
-                    Song added successfully!
+                    {isEditing ? "Song updated successfully!" : "Song added successfully!"}
                   </p>
                 )}
 
@@ -487,7 +534,7 @@ export default function Admin() {
                     disabled={submitting}
                     className="flex-1 bg-[#FF6B00] hover:bg-[#e55f00] disabled:bg-[#FF6B00]/50 text-white font-semibold py-2 rounded-lg transition"
                   >
-                    {submitting ? "Adding..." : "Add Song"}
+                    {submitting ? "Saving..." : (isEditing ? "Update Song" : "Add Song")}
                   </button>
                 </div>
               </form>

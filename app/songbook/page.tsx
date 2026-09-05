@@ -98,10 +98,10 @@ export default function Songbook() {
                   <tr
                     key={song.code}
                     onClick={() =>
-                      router.push(
+                      router.replace(
                         `/singzone?code=${song.code}&title=${encodeURIComponent(
                           song.title
-                        )}&artist=${encodeURIComponent(song.artist)}`
+                        )}&artist=${encodeURIComponent(song.artist)}&youtubeId=${encodeURIComponent(song.youtube_id)}`
                       )
                     }
                     className={`${

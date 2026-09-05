@@ -29,29 +29,26 @@ function SingzoneContent() {
   const code = searchParams.get("code") || "0000";
   const title = searchParams.get("title") || "Unknown Song";
   const artist = searchParams.get("artist") || "Unknown Artist";
+  const youtubeIdParam = searchParams.get("youtubeId") || "";
 
   const [songs, setSongs] = useState<Song[]>([]);
   const [queue, setQueue] = useState<QueuedSong[]>([]);
-  const [currentSong, setCurrentSong] = useState({ code, title, artist, youtubeId: "" });
+  const [currentSong, setCurrentSong] = useState({ code, title, artist, youtubeId: youtubeIdParam });
   const [searchQuery, setSearchQuery] = useState("");
   const [isPanelOpen, setIsPanelOpen] = useState(true);
   const [isExiting, setIsExiting] = useState(false);
   const [videoProgress, setVideoProgress] = useState(0);
   const [videoDuration, setVideoDuration] = useState(240);
   const [isPlaying, setIsPlaying] = useState(false);
-  const [playerVideoId, setPlayerVideoId] = useState<string | null>(null);
+  const [playerVideoId, setPlayerVideoId] = useState<string | null>(youtubeIdParam || null);
   const playerRef = useRef<YouTubePlayer | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const queueRef = useRef<QueuedSong[]>([]);
 
-  // Load YouTube IFrame API
+  // Keep queueRef in sync with queue state
   useEffect(() => {
-    if (typeof window !== "undefined" && !window.YT) {
-      const tag = document.createElement("script");
-      tag.src = "https://www.youtube.com/iframe_api";
-      const firstScriptTag = document.getElementsByTagName("script")[0];
-      firstScriptTag.parentNode?.insertBefore(tag, firstScriptTag);
-    }
-  }, []);
+    queueRef.current = queue;
+  }, [queue]);
 
   // Fetch songs from Supabase on mount
   useEffect(() => {
@@ -68,9 +65,33 @@ function SingzoneContent() {
     loadSongs();
   }, []);
 
+  // Fetch youtubeId from Supabase if missing from URL params
+  useEffect(() => {
+    async function fetchYoutubeId() {
+      if (!youtubeIdParam && code) {
+        const { data } = await supabase
+          .from("songs")
+          .select("youtube_id")
+          .eq("code", code)
+          .single();
+        
+        if (data?.youtube_id) {
+          setPlayerVideoId(data.youtube_id);
+          setCurrentSong(prev => ({ ...prev, youtubeId: data.youtube_id }));
+          // Update URL with youtubeId
+          router.replace(
+            `/singzone?code=${code}&title=${encodeURIComponent(title)}&artist=${encodeURIComponent(artist)}&youtubeId=${encodeURIComponent(data.youtube_id)}`
+          );
+        }
+      }
+    }
+    fetchYoutubeId();
+  }, [code, youtubeIdParam, title, artist, router]);
+
   const playNext = useCallback(() => {
-    if (queue.length > 0) {
-      const next = queue[0];
+    const currentQueue = queueRef.current;
+    if (currentQueue.length > 0) {
+      const next = currentQueue[0];
       setCurrentSong({ 
         code: next.code, 
         title: next.title, 
@@ -78,9 +99,9 @@ function SingzoneContent() {
         youtubeId: next.youtubeId 
       });
       setPlayerVideoId(next.youtubeId);
-      setQueue(queue.slice(1));
+      setQueue(currentQueue.slice(1));
       router.replace(
-        `/singzone?code=${next.code}&title=${encodeURIComponent(next.title)}&artist=${encodeURIComponent(next.artist)}`
+        `/singzone?code=${next.code}&title=${encodeURIComponent(next.title)}&artist=${encodeURIComponent(next.artist)}&youtubeId=${encodeURIComponent(next.youtubeId)}`
       );
     } else {
       setIsExiting(true);
@@ -88,21 +109,22 @@ function SingzoneContent() {
         router.push("/");
       }, 500);
     }
-  }, [queue, router]);
+  }, [router]);
 
-  // Initialize YouTube player
+  // Initialize YouTube player when videoId changes
   useEffect(() => {
+    // Don't init if no videoId
+    if (!playerVideoId) return;
+    
     const initPlayer = () => {
       if (playerRef.current) {
         playerRef.current.destroy();
+        playerRef.current = null;
       }
-      
-      // Use the current song's YouTube ID, or a default if not available
-      const videoId = playerVideoId || "UkX9XP4urcM"; // fallback to sample ID
       
       if (window.YT && containerRef.current) {
         playerRef.current = new window.YT.Player(containerRef.current, {
-          videoId: videoId,
+          videoId: playerVideoId,
           playerVars: {
             autoplay: 1,
             mute: 0,
@@ -133,18 +155,28 @@ function SingzoneContent() {
       }
     };
 
-    if (typeof window !== "undefined" && window.YT) {
+    // Wait for YT to be available, then init
+    if (window.YT && window.YT.Player) {
       initPlayer();
     } else {
+      // Set up callback for when YT API loads
       window.onYouTubeIframeAPIReady = initPlayer;
+      // Ensure script is loaded
+      if (typeof window.YT === "undefined") {
+        const tag = document.createElement("script");
+        tag.src = "https://www.youtube.com/iframe_api";
+        const firstScriptTag = document.getElementsByTagName("script")[0];
+        firstScriptTag.parentNode?.insertBefore(tag, firstScriptTag);
+      }
     }
 
     return () => {
       if (playerRef.current) {
         playerRef.current.destroy();
+        playerRef.current = null;
       }
     };
-  }, [currentSong.youtubeId, playerVideoId, playNext]);
+  }, [playerVideoId]);
 
   // Poll player state for progress
   useEffect(() => {
@@ -184,6 +216,7 @@ function SingzoneContent() {
       artist: song.artist,
       youtubeId: song.youtube_id,
     };
+    
     if (!queue.find((q) => q.code === song.code)) {
       setQueue([...queue, queuedSong]);
     }
@@ -194,6 +227,22 @@ function SingzoneContent() {
     const newQueue = [...queue];
     newQueue.splice(index, 1);
     setQueue(newQueue);
+  };
+
+  const playNow = (index: number) => {
+    const song = queue[index];
+    setCurrentSong({
+      code: song.code,
+      title: song.title,
+      artist: song.artist,
+      youtubeId: song.youtubeId,
+    });
+    setPlayerVideoId(song.youtubeId);
+    // Remove this song and all songs before it from queue
+    setQueue(queue.slice(index + 1));
+    router.replace(
+      `/singzone?code=${song.code}&title=${encodeURIComponent(song.title)}&artist=${encodeURIComponent(song.artist)}&youtubeId=${encodeURIComponent(song.youtubeId)}`
+    );
   };
 
   return (
@@ -236,7 +285,7 @@ function SingzoneContent() {
               setPlayerVideoId(next.youtubeId);
               setQueue(queue.slice(1));
               router.replace(
-                `/singzone?code=${next.code}&title=${encodeURIComponent(next.title)}&artist=${encodeURIComponent(next.artist)}`
+                `/singzone?code=${next.code}&title=${encodeURIComponent(next.title)}&artist=${encodeURIComponent(next.artist)}&youtubeId=${encodeURIComponent(next.youtubeId)}`
               );
             }}
             className="bg-[#1a1a1a] px-4 py-3 border-b border-white/10 cursor-pointer hover:bg-[#1a1a1a]/80 transition"
@@ -334,6 +383,12 @@ function SingzoneContent() {
                     <span className="text-white text-xs truncate">{song.title}</span>
                     <span className="text-white/50 text-xs truncate ml-1">- {song.artist}</span>
                   </div>
+                  <button
+                    onClick={() => playNow(index)}
+                    className="flex-shrink-0 text-[10px] bg-[#FF6B00] hover:bg-[#e55f00] text-white font-semibold px-2 py-1 rounded transition opacity-0 group-hover:opacity-100"
+                  >
+                    Play Now
+                  </button>
                 </div>
               ))}
             </div>
@@ -355,15 +410,22 @@ function SingzoneContent() {
             <div className="mt-3 max-h-60 overflow-y-auto rounded-lg bg-[#2a2a2a] border border-white/10">
               {searchResults.length > 0 ? (
                 searchResults.map((song) => (
-                  <button
+                  <div
                     key={song.code}
-                    onClick={() => addToQueue(song)}
-                    className="w-full text-left px-4 py-3 hover:bg-[#FF6B00]/20 transition border-b border-white/5 last:border-b-0"
+                    className="flex items-center gap-2 px-4 py-3 hover:bg-[#FF6B00]/20 transition border-b border-white/5 last:border-b-0"
                   >
-                    <p className="text-[#FF6B00] font-bold text-sm">{song.code}</p>
-                    <p className="text-white text-sm truncate">{song.title}</p>
-                    <p className="text-white/50 text-xs truncate">{song.artist}</p>
-                  </button>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[#FF6B00] font-bold text-sm">{song.code}</p>
+                      <p className="text-white text-sm truncate">{song.title}</p>
+                      <p className="text-white/50 text-xs truncate">{song.artist}</p>
+                    </div>
+                    <button
+                      onClick={() => addToQueue(song)}
+                      className="flex-shrink-0 bg-[#FF6B00] hover:bg-[#e55f00] text-white text-xs font-semibold px-3 py-1.5 rounded transition"
+                    >
+                      Reserve
+                    </button>
+                  </div>
                 ))
               ) : (
                 <p className="px-4 py-3 text-white/50 text-sm text-center">
