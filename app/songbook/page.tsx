@@ -1,37 +1,36 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { supabase, isSupabaseConfigured } from "@/lib/supabase";
+import type { Database } from "@/lib/database.types";
 
-const SONGS = [
-  { code: "0001", title: "Huling El Bimbo", artist: "Eraserheads" },
-  { code: "0002", title: "Bohemian Rhapsody", artist: "Queen" },
-  { code: "0003", title: "My Way", artist: "Frank Sinatra" },
-  { code: "0004", title: "Salamat", artist: "Eraserheads" },
-  { code: "0005", title: "Hotel California", artist: "Eagles" },
-  { code: "0006", title: "Bitterlang", artist: "Itchyworms" },
-  { code: "0007", title: "With You", artist: "Parokya ni Edgar" },
-  { code: "0008", title: "Una", artist: "KABANATA" },
-  { code: "0009", title: "Dancing Queen", artist: "ABBA" },
-  { code: "0010", title: "Take Me Home, Country Roads", artist: "John Denver" },
-  { code: "0011", title: "Country Roads", artist: "John Denver" },
-  { code: "0012", title: "Lay Me Down", artist: "John Legend" },
-  { code: "0013", title: "All of Me", artist: "John Legend" },
-  { code: "0014", title: "Perfect", artist: "Ed Sheeran" },
-  { code: "0015", title: "Shape of You", artist: "Ed Sheeran" },
-  { code: "0016", title: "Too Good at Goodbyes", artist: "Sam Smith" },
-  { code: "0017", title: "I'm Not the Only One", artist: "Sam Smith" },
-  { code: "0018", title: "Stay", artist: "Rihanna" },
-  { code: "0019", title: "Love Yourself", artist: "Justin Bieber" },
-  { code: "0020", title: "Despacito", artist: "Luis Fonsi" },
-];
+type Song = Database["public"]["Tables"]["songs"]["Row"];
 
 export default function Songbook() {
   const [search, setSearch] = useState("");
+  const [songs, setSongs] = useState<Song[]>([]);
+  const [loading, setLoading] = useState(true);
   const router = useRouter();
 
-  const filteredSongs = SONGS.filter(
+  useEffect(() => {
+    async function fetchSongs() {
+      setLoading(true);
+      const { data, error } = await supabase
+        .from("songs")
+        .select("*")
+        .order("code", { ascending: true });
+
+      if (!error && data) {
+        setSongs(data);
+      }
+      setLoading(false);
+    }
+    fetchSongs();
+  }, []);
+
+  const filteredSongs = songs.filter(
     (song) =>
       song.title.toLowerCase().includes(search.toLowerCase()) ||
       song.artist.toLowerCase().includes(search.toLowerCase()) ||
@@ -88,7 +87,13 @@ export default function Songbook() {
               </tr>
             </thead>
             <tbody className="divide-y divide-white/10">
-              {filteredSongs.length > 0 ? (
+              {loading ? (
+                <tr>
+                  <td colSpan={3} className="px-6 py-12 text-center text-white/50">
+                    Loading songs...
+                  </td>
+                </tr>
+              ) : filteredSongs.length > 0 ? (
                 filteredSongs.map((song, index) => (
                   <tr
                     key={song.code}
