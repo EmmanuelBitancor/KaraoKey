@@ -3,6 +3,8 @@
 import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { Suspense, useState, useRef, useEffect, useCallback } from "react";
+import { supabase } from "@/lib/supabase";
+import type { Database } from "@/lib/database.types";
 
 interface QueuedSong {
   code: string;
@@ -10,6 +12,8 @@ interface QueuedSong {
   artist: string;
   youtubeId: string;
 }
+
+type Song = Database["public"]["Tables"]["songs"]["Row"];
 
 interface YouTubePlayer {
   destroy: () => void;
@@ -19,8 +23,6 @@ interface YouTubePlayer {
   pauseVideo: () => void;
 }
 
-const SAMPLE_YOUTUBE_ID = "UkX9XP4urcM";
-
 function SingzoneContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -28,14 +30,16 @@ function SingzoneContent() {
   const title = searchParams.get("title") || "Unknown Song";
   const artist = searchParams.get("artist") || "Unknown Artist";
 
+  const [songs, setSongs] = useState<Song[]>([]);
   const [queue, setQueue] = useState<QueuedSong[]>([]);
-  const [currentSong, setCurrentSong] = useState({ code, title, artist });
+  const [currentSong, setCurrentSong] = useState({ code, title, artist, youtubeId: "" });
   const [searchQuery, setSearchQuery] = useState("");
   const [isPanelOpen, setIsPanelOpen] = useState(true);
   const [isExiting, setIsExiting] = useState(false);
   const [videoProgress, setVideoProgress] = useState(0);
   const [videoDuration, setVideoDuration] = useState(240);
   const [isPlaying, setIsPlaying] = useState(false);
+  const [playerVideoId, setPlayerVideoId] = useState<string | null>(null);
   const playerRef = useRef<YouTubePlayer | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -49,10 +53,31 @@ function SingzoneContent() {
     }
   }, []);
 
+  // Fetch songs from Supabase on mount
+  useEffect(() => {
+    async function loadSongs() {
+      const { data } = await supabase
+        .from("songs")
+        .select("*")
+        .order("code", { ascending: true });
+
+      if (data) {
+        setSongs(data);
+      }
+    }
+    loadSongs();
+  }, []);
+
   const playNext = useCallback(() => {
     if (queue.length > 0) {
       const next = queue[0];
-      setCurrentSong({ code: next.code, title: next.title, artist: next.artist });
+      setCurrentSong({ 
+        code: next.code, 
+        title: next.title, 
+        artist: next.artist,
+        youtubeId: next.youtubeId 
+      });
+      setPlayerVideoId(next.youtubeId);
       setQueue(queue.slice(1));
       router.replace(
         `/singzone?code=${next.code}&title=${encodeURIComponent(next.title)}&artist=${encodeURIComponent(next.artist)}`
@@ -71,9 +96,13 @@ function SingzoneContent() {
       if (playerRef.current) {
         playerRef.current.destroy();
       }
+      
+      // Use the current song's YouTube ID, or a default if not available
+      const videoId = playerVideoId || "UkX9XP4urcM"; // fallback to sample ID
+      
       if (window.YT && containerRef.current) {
         playerRef.current = new window.YT.Player(containerRef.current, {
-          videoId: SAMPLE_YOUTUBE_ID,
+          videoId: videoId,
           playerVars: {
             autoplay: 1,
             mute: 0,
@@ -115,7 +144,7 @@ function SingzoneContent() {
         playerRef.current.destroy();
       }
     };
-  }, [currentSong.code, playNext]);
+  }, [currentSong.youtubeId, playerVideoId, playNext]);
 
   // Poll player state for progress
   useEffect(() => {
@@ -139,31 +168,8 @@ function SingzoneContent() {
   const formatTime = (seconds: number) =>
     `${Math.floor(seconds / 60)}:${String(Math.floor(seconds % 60)).padStart(2, "0")}`;
 
-  // Song database for searching
-  const songDatabase: QueuedSong[] = [
-    { code: "0001", title: "Huling El Bimbo", artist: "Eraserheads", youtubeId: SAMPLE_YOUTUBE_ID },
-    { code: "0002", title: "Bohemian Rhapsody", artist: "Queen", youtubeId: SAMPLE_YOUTUBE_ID },
-    { code: "0003", title: "My Way", artist: "Frank Sinatra", youtubeId: SAMPLE_YOUTUBE_ID },
-    { code: "0004", title: "Salamat", artist: "Eraserheads", youtubeId: SAMPLE_YOUTUBE_ID },
-    { code: "0005", title: "Hotel California", artist: "Eagles", youtubeId: SAMPLE_YOUTUBE_ID },
-    { code: "0006", title: "Bitterlang", artist: "Itchyworms", youtubeId: SAMPLE_YOUTUBE_ID },
-    { code: "0007", title: "With You", artist: "Parokya ni Edgar", youtubeId: SAMPLE_YOUTUBE_ID },
-    { code: "0008", title: "Una", artist: "KABANATA", youtubeId: SAMPLE_YOUTUBE_ID },
-    { code: "0009", title: "Dancing Queen", artist: "ABBA", youtubeId: SAMPLE_YOUTUBE_ID },
-    { code: "0010", title: "Take Me Home, Country Roads", artist: "John Denver", youtubeId: SAMPLE_YOUTUBE_ID },
-    { code: "0011", title: "Country Roads", artist: "John Denver", youtubeId: SAMPLE_YOUTUBE_ID },
-    { code: "0012", title: "Lay Me Down", artist: "John Legend", youtubeId: SAMPLE_YOUTUBE_ID },
-    { code: "0013", title: "All of Me", artist: "John Legend", youtubeId: SAMPLE_YOUTUBE_ID },
-    { code: "0014", title: "Perfect", artist: "Ed Sheeran", youtubeId: SAMPLE_YOUTUBE_ID },
-    { code: "0015", title: "Shape of You", artist: "Ed Sheeran", youtubeId: SAMPLE_YOUTUBE_ID },
-    { code: "0016", title: "Too Good at Goodbyes", artist: "Sam Smith", youtubeId: SAMPLE_YOUTUBE_ID },
-    { code: "0017", title: "I'm Not the Only One", artist: "Sam Smith", youtubeId: SAMPLE_YOUTUBE_ID },
-    { code: "0018", title: "Stay", artist: "Rihanna", youtubeId: SAMPLE_YOUTUBE_ID },
-    { code: "0019", title: "Love Yourself", artist: "Justin Bieber", youtubeId: SAMPLE_YOUTUBE_ID },
-    { code: "0020", title: "Despacito", artist: "Luis Fonsi", youtubeId: SAMPLE_YOUTUBE_ID },
-  ];
-
-  const searchResults = songDatabase.filter(
+  // Use fetched songs for searching instead of hardcoded database
+  const searchResults = songs.filter(
     (song) =>
       searchQuery === "" ||
       song.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -171,9 +177,15 @@ function SingzoneContent() {
       song.code.includes(searchQuery)
   );
 
-  const addToQueue = (song: QueuedSong) => {
+  const addToQueue = (song: Song) => {
+    const queuedSong: QueuedSong = {
+      code: song.code,
+      title: song.title,
+      artist: song.artist,
+      youtubeId: song.youtube_id,
+    };
     if (!queue.find((q) => q.code === song.code)) {
-      setQueue([...queue, song]);
+      setQueue([...queue, queuedSong]);
     }
     setSearchQuery("");
   };
@@ -215,7 +227,13 @@ function SingzoneContent() {
           <div
             onClick={() => {
               const next = queue[0];
-              setCurrentSong({ code: next.code, title: next.title, artist: next.artist });
+              setCurrentSong({ 
+                code: next.code, 
+                title: next.title, 
+                artist: next.artist,
+                youtubeId: next.youtubeId 
+              });
+              setPlayerVideoId(next.youtubeId);
               setQueue(queue.slice(1));
               router.replace(
                 `/singzone?code=${next.code}&title=${encodeURIComponent(next.title)}&artist=${encodeURIComponent(next.artist)}`

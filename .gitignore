@@ -4,3 +4,4 @@ out/
 *.log
 .env*
 !.env.example
+supabase/
