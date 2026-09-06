@@ -17,6 +17,7 @@ import {
   ArcElement,
   PointElement,
   LineElement,
+  Filler,
 } from "chart.js";
 import { Bar, Pie, Line } from "react-chartjs-2";
 
@@ -29,7 +30,8 @@ ChartJS.register(
   Legend,
   ArcElement,
   PointElement,
-  LineElement
+  LineElement,
+  Filler
 );
 
 type Song = Database["public"]["Tables"]["songs"]["Row"];
