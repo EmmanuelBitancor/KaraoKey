@@ -13,6 +13,8 @@ export default function Songbook() {
   const [letterFilter, setLetterFilter] = useState<string | null>(null);
   const [songs, setSongs] = useState<Song[]>([]);
   const [loading, setLoading] = useState(true);
+  const [currentPage, setCurrentPage] = useState(1);
+  const ITEMS_PER_PAGE = 20;
   const router = useRouter();
 
   useEffect(() => {
@@ -40,11 +42,22 @@ export default function Songbook() {
 
     const matchesLetter =
       !letterFilter ||
-      song.title.toUpperCase().startsWith(letterFilter) ||
-      song.artist.toUpperCase().startsWith(letterFilter);
+      song.title.toUpperCase().startsWith(letterFilter);
 
     return matchesSearch && matchesLetter;
   });
+
+  // Pagination
+  const totalPages = Math.ceil(filteredSongs.length / ITEMS_PER_PAGE);
+  const paginatedSongs = filteredSongs.slice(
+    (currentPage - 1) * ITEMS_PER_PAGE,
+    currentPage * ITEMS_PER_PAGE
+  );
+
+  // Reset to page 1 when filter changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search, letterFilter]);
 
   return (
     <div className="min-h-screen bg-[#0D0D0D] text-white">
@@ -132,8 +145,8 @@ export default function Songbook() {
                     Loading songs...
                   </td>
                 </tr>
-              ) : filteredSongs.length > 0 ? (
-                filteredSongs.map((song, index) => (
+              ) : paginatedSongs.length > 0 ? (
+                paginatedSongs.map((song, index) => (
                   <tr
                     key={song.code}
                     onClick={() =>
@@ -164,6 +177,29 @@ export default function Songbook() {
             </tbody>
           </table>
         </div>
+
+        {/* Pagination */}
+        {totalPages > 1 && (
+          <div className="flex items-center justify-center gap-2 mt-4">
+            <button
+              onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+              disabled={currentPage === 1}
+              className="px-3 py-1 rounded bg-white/10 text-white/70 hover:bg-white/20 disabled:opacity-50 disabled:cursor-not-allowed transition"
+            >
+              Prev
+            </button>
+            <span className="text-white/50 text-sm">
+              Page {currentPage} of {totalPages}
+            </span>
+            <button
+              onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+              disabled={currentPage === totalPages}
+              className="px-3 py-1 rounded bg-white/10 text-white/70 hover:bg-white/20 disabled:opacity-50 disabled:cursor-not-allowed transition"
+            >
+              Next
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );
