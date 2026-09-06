@@ -210,8 +210,7 @@ function SingzoneContent() {
         song.code.includes(searchQuery);
       
       const matchesLetter = !letterFilter ||
-        song.title.toUpperCase().startsWith(letterFilter) ||
-        song.artist.toUpperCase().startsWith(letterFilter);
+        song.title.toUpperCase().startsWith(letterFilter);
       
       return matchesSearch && matchesLetter;
     }
