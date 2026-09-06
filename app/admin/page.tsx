@@ -20,6 +20,8 @@ export default function Admin() {
   const [songs, setSongs] = useState<Song[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [letterFilter, setLetterFilter] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
 
   // Form state
   const [code, setCode] = useState("");
@@ -35,6 +37,11 @@ export default function Admin() {
 
   // Modal state
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [editingSong, setEditingSong] = useState<Song | null>(null);
+  const isEditing = editingSong !== null;
+
+  // Preview state
+  const [previewSong, setPreviewSong] = useState<Song | null>(null);
 
   const getNextCode = (): string => {
     if (songs.length === 0) return "0001";
@@ -52,11 +59,23 @@ export default function Admin() {
     setYoutubeId("");
     setSubmitError(null);
     setSubmitSuccess(false);
+    setEditingSong(null);
   };
 
   const openAddModal = () => {
     resetForm();
     setCode(getNextCode());
+    setIsAddModalOpen(true);
+  };
+
+  const openEditModal = (song: Song) => {
+    setEditingSong(song);
+    setCode(song.code);
+    setTitle(song.title);
+    setArtist(song.artist);
+    setYoutubeId(song.youtube_id);
+    setSubmitError(null);
+    setSubmitSuccess(false);
     setIsAddModalOpen(true);
   };
 
@@ -135,25 +154,59 @@ export default function Admin() {
       return;
     }
 
-    const { error } = await supabase.from("songs").insert({
-      code,
-      title: title.trim(),
-      artist: artist.trim(),
-      youtube_id: youtubeId.trim() || "UkX9XP4urcM",
-    });
+    const youtubeIdValue = youtubeId.trim() || "UkX9XP4urcM";
 
-    if (error) {
-      if (error.code === "23505") {
-        setSubmitError(`Song with code "${code}" already exists`);
-      } else {
+    if (isEditing && editingSong) {
+      // Update existing song
+      const { error } = await supabase
+        .from("songs")
+        .update({
+          title: title.trim(),
+          artist: artist.trim(),
+          youtube_id: youtubeIdValue,
+        })
+        .eq("code", editingSong.code);
+
+      if (error) {
         setSubmitError(error.message);
+      } else {
+        setSubmitSuccess(true);
+        // Update previewSong if it's the same song being edited
+        if (previewSong && previewSong.code === editingSong.code) {
+          setPreviewSong({
+            ...previewSong,
+            title: title.trim(),
+            artist: artist.trim(),
+            youtube_id: youtubeIdValue,
+          });
+        }
+        fetchSongs();
+        setTimeout(() => {
+          closeAddModal();
+        }, 1500);
       }
     } else {
-      setSubmitSuccess(true);
-      fetchSongs();
-      setTimeout(() => {
-        closeAddModal();
-      }, 1500);
+      // Insert new song
+      const { error } = await supabase.from("songs").insert({
+        code,
+        title: title.trim(),
+        artist: artist.trim(),
+        youtube_id: youtubeIdValue,
+      });
+
+      if (error) {
+        if (error.code === "23505") {
+          setSubmitError(`Song with code "${code}" already exists`);
+        } else {
+          setSubmitError(error.message);
+        }
+      } else {
+        setSubmitSuccess(true);
+        fetchSongs();
+        setTimeout(() => {
+          closeAddModal();
+        }, 1500);
+      }
     }
 
     setSubmitting(false);
@@ -332,6 +385,47 @@ export default function Admin() {
             </div>
           </div>
 
+          {/* Search Bar */}
+          <div className="px-4 py-3 border-b border-white/10">
+            <input
+              type="text"
+              placeholder="Search song or artist..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full rounded-lg bg-white/10 px-4 py-2 text-white placeholder-white/50 outline-none focus:ring-2 focus:ring-[#FF6B00]"
+            />
+          </div>
+
+          {/* Letter Filter */}
+          <div className="px-4 py-3 border-b border-white/10">
+            <p className="text-white/50 text-xs mb-2">Filter by letter:</p>
+            <div className="flex items-center gap-1 overflow-x-auto pb-1">
+              <button
+                onClick={() => setLetterFilter(null)}
+                className={`flex-shrink-0 px-2 py-1 text-xs font-semibold rounded transition ${
+                  letterFilter === null
+                    ? "bg-[#FF6B00] text-white"
+                    : "bg-white/10 text-white/70 hover:bg-white/20"
+                }`}
+              >
+                All
+              </button>
+              {Array.from("ABCDEFGHIJKLMNOPQRSTUVWXYZ").map((letter) => (
+                <button
+                  key={letter}
+                  onClick={() => setLetterFilter(letter)}
+                  className={`flex-shrink-0 w-7 h-7 text-xs font-semibold rounded transition flex items-center justify-center ${
+                    letterFilter === letter
+                      ? "bg-[#FF6B00] text-white"
+                      : "bg-white/10 text-white/70 hover:bg-white/20"
+                  }`}
+                >
+                  {letter}
+                </button>
+              ))}
+            </div>
+          </div>
+
           {loading ? (
             <div className="p-8 text-center text-white/50">
               Loading songs...
@@ -363,7 +457,22 @@ export default function Admin() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-white/10">
-                  {songs.map((song) => (
+                  {songs
+                    .filter((song) => {
+                      const matchesSearch =
+                        searchQuery === "" ||
+                        song.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                        song.artist.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                        song.code.includes(searchQuery);
+
+                      const matchesLetter =
+                        !letterFilter ||
+                        song.title.toUpperCase().startsWith(letterFilter) ||
+                        song.artist.toUpperCase().startsWith(letterFilter);
+
+                      return matchesSearch && matchesLetter;
+                    })
+                    .map((song) => (
                     <tr key={song.code} className="hover:bg-white/5">
                       <td className="px-4 py-3 text-[#FF6B00] font-bold">
                         {song.code}
@@ -374,6 +483,18 @@ export default function Admin() {
                         {song.youtube_id}
                       </td>
                       <td className="px-4 py-3 text-right">
+                        <button
+                          onClick={() => setPreviewSong(song)}
+                          className="text-green-400/70 hover:text-green-500 mr-3 text-sm transition"
+                        >
+                          Preview
+                        </button>
+                        <button
+                          onClick={() => openEditModal(song)}
+                          className="text-blue-400/70 hover:text-blue-500 mr-3 text-sm transition"
+                        >
+                          Edit
+                        </button>
                         <button
                           onClick={() => handleDelete(song.code)}
                           disabled={deletingCode === song.code}
@@ -390,12 +511,12 @@ export default function Admin() {
           )}
         </div>
 
-        {/* Add Song Modal */}
+        {/* Add/Edit Song Modal */}
         {isAddModalOpen && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70">
             <div className="bg-[#1a1a1a] rounded-lg border border-white/10 w-full max-w-md mx-4 p-6">
               <div className="flex items-center justify-between mb-6">
-                <h2 className="text-xl font-bold">Add New Song</h2>
+                <h2 className="text-xl font-bold">{isEditing ? "Edit Song" : "Add New Song"}</h2>
                 <button
                   onClick={closeAddModal}
                   className="text-white/50 hover:text-white transition"
@@ -419,7 +540,9 @@ export default function Admin() {
                     className="w-full rounded-lg bg-white/5 px-4 py-2 text-[#FF6B00] font-bold cursor-not-allowed outline-none"
                     maxLength={4}
                   />
-                  <p className="text-white/40 text-xs mt-1">Auto-generated</p>
+                  {isEditing ? null : (
+                    <p className="text-white/40 text-xs mt-1">Auto-generated</p>
+                  )}
                 </div>
 
                 <div>
@@ -470,7 +593,7 @@ export default function Admin() {
 
                 {submitSuccess && (
                   <p className="text-green-400 text-sm">
-                    Song added successfully!
+                    {isEditing ? "Song updated successfully!" : "Song added successfully!"}
                   </p>
                 )}
 
@@ -487,10 +610,44 @@ export default function Admin() {
                     disabled={submitting}
                     className="flex-1 bg-[#FF6B00] hover:bg-[#e55f00] disabled:bg-[#FF6B00]/50 text-white font-semibold py-2 rounded-lg transition"
                   >
-                    {submitting ? "Adding..." : "Add Song"}
+                    {submitting ? "Saving..." : (isEditing ? "Update Song" : "Add Song")}
                   </button>
                 </div>
               </form>
+            </div>
+          </div>
+        )}
+
+        {/* Video Preview Modal */}
+        {previewSong && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70">
+            <div className="bg-[#1a1a1a] rounded-lg border border-white/10 w-full max-w-2xl mx-4 p-6">
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <h2 className="text-xl font-bold">Video Preview</h2>
+                  <p className="text-white/50 text-sm">{previewSong.title} - {previewSong.artist}</p>
+                </div>
+                <button
+                  onClick={() => setPreviewSong(null)}
+                  className="text-white/50 hover:text-white transition"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+              <div className="aspect-video rounded-lg overflow-hidden bg-black">
+                <iframe
+                  key={previewSong.youtube_id}
+                  src={`https://www.youtube.com/embed/${previewSong.youtube_id}?autoplay=1`}
+                  className="w-full h-full"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowFullScreen
+                />
+              </div>
+              <p className="text-white/40 text-xs mt-2 text-center">
+                YouTube ID: {previewSong.youtube_id}
+              </p>
             </div>
           </div>
         )}

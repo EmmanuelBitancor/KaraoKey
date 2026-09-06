@@ -10,6 +10,7 @@ type Song = Database["public"]["Tables"]["songs"]["Row"];
 
 export default function Songbook() {
   const [search, setSearch] = useState("");
+  const [letterFilter, setLetterFilter] = useState<string | null>(null);
   const [songs, setSongs] = useState<Song[]>([]);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
@@ -30,12 +31,20 @@ export default function Songbook() {
     fetchSongs();
   }, []);
 
-  const filteredSongs = songs.filter(
-    (song) =>
+  const filteredSongs = songs.filter((song) => {
+    const matchesSearch =
+      search === "" ||
       song.title.toLowerCase().includes(search.toLowerCase()) ||
       song.artist.toLowerCase().includes(search.toLowerCase()) ||
-      song.code.includes(search)
-  );
+      song.code.includes(search);
+
+    const matchesLetter =
+      !letterFilter ||
+      song.title.toUpperCase().startsWith(letterFilter) ||
+      song.artist.toUpperCase().startsWith(letterFilter);
+
+    return matchesSearch && matchesLetter;
+  });
 
   return (
     <div className="min-h-screen bg-[#0D0D0D] text-white">
@@ -71,6 +80,36 @@ export default function Songbook() {
 
       {/* Table */}
       <div className="mx-auto max-w-4xl px-4 py-8">
+        {/* Letter Filter */}
+        <div className="mb-4 overflow-x-auto">
+          <p className="text-white/50 text-xs mb-2">Filter by letter:</p>
+          <div className="flex items-center gap-1">
+            <button
+              onClick={() => setLetterFilter(null)}
+              className={`flex-shrink-0 px-2 py-1 text-xs font-semibold rounded transition ${
+                letterFilter === null
+                  ? "bg-[#FF6B00] text-white"
+                  : "bg-white/10 text-white/70 hover:bg-white/20"
+              }`}
+            >
+              All
+            </button>
+            {Array.from("ABCDEFGHIJKLMNOPQRSTUVWXYZ").map((letter) => (
+              <button
+                key={letter}
+                onClick={() => setLetterFilter(letter)}
+                className={`flex-shrink-0 w-7 h-7 text-xs font-semibold rounded transition flex items-center justify-center ${
+                  letterFilter === letter
+                    ? "bg-[#FF6B00] text-white"
+                    : "bg-white/10 text-white/70 hover:bg-white/20"
+                }`}
+              >
+                {letter}
+              </button>
+            ))}
+          </div>
+        </div>
+
         <div className="overflow-hidden rounded-lg border border-white/10">
           <table className="w-full">
             <thead className="bg-[#FF6B00]">
@@ -98,10 +137,10 @@ export default function Songbook() {
                   <tr
                     key={song.code}
                     onClick={() =>
-                      router.push(
+                      router.replace(
                         `/singzone?code=${song.code}&title=${encodeURIComponent(
                           song.title
-                        )}&artist=${encodeURIComponent(song.artist)}`
+                        )}&artist=${encodeURIComponent(song.artist)}&youtubeId=${encodeURIComponent(song.youtube_id)}`
                       )
                     }
                     className={`${

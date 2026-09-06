@@ -46,7 +46,7 @@ export default function Hero() {
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter" && matchedSong) {
       router.push(
-        `/singzone?code=${matchedSong.code}&title=${encodeURIComponent(matchedSong.title)}&artist=${encodeURIComponent(matchedSong.artist)}`
+        `/singzone?code=${matchedSong.code}&title=${encodeURIComponent(matchedSong.title)}&artist=${encodeURIComponent(matchedSong.artist)}&youtubeId=${encodeURIComponent(matchedSong.youtube_id)}`
       );
     }
   };

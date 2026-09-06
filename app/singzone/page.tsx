@@ -29,29 +29,27 @@ function SingzoneContent() {
   const code = searchParams.get("code") || "0000";
   const title = searchParams.get("title") || "Unknown Song";
   const artist = searchParams.get("artist") || "Unknown Artist";
+  const youtubeIdParam = searchParams.get("youtubeId") || "";
 
   const [songs, setSongs] = useState<Song[]>([]);
   const [queue, setQueue] = useState<QueuedSong[]>([]);
-  const [currentSong, setCurrentSong] = useState({ code, title, artist, youtubeId: "" });
+  const [currentSong, setCurrentSong] = useState({ code, title, artist, youtubeId: youtubeIdParam });
   const [searchQuery, setSearchQuery] = useState("");
+  const [letterFilter, setLetterFilter] = useState<string | null>(null);
   const [isPanelOpen, setIsPanelOpen] = useState(true);
   const [isExiting, setIsExiting] = useState(false);
   const [videoProgress, setVideoProgress] = useState(0);
   const [videoDuration, setVideoDuration] = useState(240);
   const [isPlaying, setIsPlaying] = useState(false);
-  const [playerVideoId, setPlayerVideoId] = useState<string | null>(null);
+  const [playerVideoId, setPlayerVideoId] = useState<string | null>(youtubeIdParam || null);
   const playerRef = useRef<YouTubePlayer | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const queueRef = useRef<QueuedSong[]>([]);
 
-  // Load YouTube IFrame API
+  // Keep queueRef in sync with queue state
   useEffect(() => {
-    if (typeof window !== "undefined" && !window.YT) {
-      const tag = document.createElement("script");
-      tag.src = "https://www.youtube.com/iframe_api";
-      const firstScriptTag = document.getElementsByTagName("script")[0];
-      firstScriptTag.parentNode?.insertBefore(tag, firstScriptTag);
-    }
-  }, []);
+    queueRef.current = queue;
+  }, [queue]);
 
   // Fetch songs from Supabase on mount
   useEffect(() => {
@@ -68,9 +66,33 @@ function SingzoneContent() {
     loadSongs();
   }, []);
 
+  // Fetch youtubeId from Supabase if missing from URL params
+  useEffect(() => {
+    async function fetchYoutubeId() {
+      if (!youtubeIdParam && code) {
+        const { data } = await supabase
+          .from("songs")
+          .select("youtube_id")
+          .eq("code", code)
+          .single();
+        
+        if (data?.youtube_id) {
+          setPlayerVideoId(data.youtube_id);
+          setCurrentSong(prev => ({ ...prev, youtubeId: data.youtube_id }));
+          // Update URL with youtubeId
+          router.replace(
+            `/singzone?code=${code}&title=${encodeURIComponent(title)}&artist=${encodeURIComponent(artist)}&youtubeId=${encodeURIComponent(data.youtube_id)}`
+          );
+        }
+      }
+    }
+    fetchYoutubeId();
+  }, [code, youtubeIdParam, title, artist, router]);
+
   const playNext = useCallback(() => {
-    if (queue.length > 0) {
-      const next = queue[0];
+    const currentQueue = queueRef.current;
+    if (currentQueue.length > 0) {
+      const next = currentQueue[0];
       setCurrentSong({ 
         code: next.code, 
         title: next.title, 
@@ -78,9 +100,9 @@ function SingzoneContent() {
         youtubeId: next.youtubeId 
       });
       setPlayerVideoId(next.youtubeId);
-      setQueue(queue.slice(1));
+      setQueue(currentQueue.slice(1));
       router.replace(
-        `/singzone?code=${next.code}&title=${encodeURIComponent(next.title)}&artist=${encodeURIComponent(next.artist)}`
+        `/singzone?code=${next.code}&title=${encodeURIComponent(next.title)}&artist=${encodeURIComponent(next.artist)}&youtubeId=${encodeURIComponent(next.youtubeId)}`
       );
     } else {
       setIsExiting(true);
@@ -88,21 +110,22 @@ function SingzoneContent() {
         router.push("/");
       }, 500);
     }
-  }, [queue, router]);
+  }, [router]);
 
-  // Initialize YouTube player
+  // Initialize YouTube player when videoId changes
   useEffect(() => {
+    // Don't init if no videoId
+    if (!playerVideoId) return;
+    
     const initPlayer = () => {
       if (playerRef.current) {
         playerRef.current.destroy();
+        playerRef.current = null;
       }
-      
-      // Use the current song's YouTube ID, or a default if not available
-      const videoId = playerVideoId || "UkX9XP4urcM"; // fallback to sample ID
       
       if (window.YT && containerRef.current) {
         playerRef.current = new window.YT.Player(containerRef.current, {
-          videoId: videoId,
+          videoId: playerVideoId,
           playerVars: {
             autoplay: 1,
             mute: 0,
@@ -133,18 +156,28 @@ function SingzoneContent() {
       }
     };
 
-    if (typeof window !== "undefined" && window.YT) {
+    // Wait for YT to be available, then init
+    if (window.YT && window.YT.Player) {
       initPlayer();
     } else {
+      // Set up callback for when YT API loads
       window.onYouTubeIframeAPIReady = initPlayer;
+      // Ensure script is loaded
+      if (typeof window.YT === "undefined") {
+        const tag = document.createElement("script");
+        tag.src = "https://www.youtube.com/iframe_api";
+        const firstScriptTag = document.getElementsByTagName("script")[0];
+        firstScriptTag.parentNode?.insertBefore(tag, firstScriptTag);
+      }
     }
 
     return () => {
       if (playerRef.current) {
         playerRef.current.destroy();
+        playerRef.current = null;
       }
     };
-  }, [currentSong.youtubeId, playerVideoId, playNext]);
+  }, [playerVideoId]);
 
   // Poll player state for progress
   useEffect(() => {
@@ -170,11 +203,18 @@ function SingzoneContent() {
 
   // Use fetched songs for searching instead of hardcoded database
   const searchResults = songs.filter(
-    (song) =>
-      searchQuery === "" ||
-      song.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      song.artist.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      song.code.includes(searchQuery)
+    (song) => {
+      const matchesSearch = searchQuery === "" ||
+        song.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        song.artist.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        song.code.includes(searchQuery);
+      
+      const matchesLetter = !letterFilter ||
+        song.title.toUpperCase().startsWith(letterFilter) ||
+        song.artist.toUpperCase().startsWith(letterFilter);
+      
+      return matchesSearch && matchesLetter;
+    }
   );
 
   const addToQueue = (song: Song) => {
@@ -184,6 +224,7 @@ function SingzoneContent() {
       artist: song.artist,
       youtubeId: song.youtube_id,
     };
+    
     if (!queue.find((q) => q.code === song.code)) {
       setQueue([...queue, queuedSong]);
     }
@@ -194,6 +235,22 @@ function SingzoneContent() {
     const newQueue = [...queue];
     newQueue.splice(index, 1);
     setQueue(newQueue);
+  };
+
+  const playNow = (index: number) => {
+    const song = queue[index];
+    setCurrentSong({
+      code: song.code,
+      title: song.title,
+      artist: song.artist,
+      youtubeId: song.youtubeId,
+    });
+    setPlayerVideoId(song.youtubeId);
+    // Remove this song and all songs before it from queue
+    setQueue(queue.slice(index + 1));
+    router.replace(
+      `/singzone?code=${song.code}&title=${encodeURIComponent(song.title)}&artist=${encodeURIComponent(song.artist)}&youtubeId=${encodeURIComponent(song.youtubeId)}`
+    );
   };
 
   return (
@@ -236,7 +293,7 @@ function SingzoneContent() {
               setPlayerVideoId(next.youtubeId);
               setQueue(queue.slice(1));
               router.replace(
-                `/singzone?code=${next.code}&title=${encodeURIComponent(next.title)}&artist=${encodeURIComponent(next.artist)}`
+                `/singzone?code=${next.code}&title=${encodeURIComponent(next.title)}&artist=${encodeURIComponent(next.artist)}&youtubeId=${encodeURIComponent(next.youtubeId)}`
               );
             }}
             className="bg-[#1a1a1a] px-4 py-3 border-b border-white/10 cursor-pointer hover:bg-[#1a1a1a]/80 transition"
@@ -297,83 +354,124 @@ function SingzoneContent() {
         </button>
       )}
 
-      {/* Side Panel - Queue */}
-      <div className={`bg-[#1a1a1a] border-l border-white/10 flex flex-col transition-all duration-300 ${isPanelOpen ? "w-80" : "w-0 border-0 overflow-hidden"}`}>
-        <div className="p-4 border-b border-white/10 flex items-center justify-between">
-          <div>
-            <h2 className="text-lg font-bold text-white">Song Queue</h2>
-            <p className="text-sm text-white/50">{queue.length} song(s) in queue</p>
-          </div>
-          <button
-            onClick={() => setIsPanelOpen(!isPanelOpen)}
-            className="text-white/50 hover:text-white transition"
-          >
-            <span className="text-xl">{isPanelOpen ? "»" : "«"}</span>
-          </button>
-        </div>
+       {/* Side Panel - Queue */}
+       <div className={`bg-[#1a1a1a] border-l border-white/10 flex flex-col transition-all duration-300 ${isPanelOpen ? "w-80" : "w-0 border-0 overflow-hidden"}`}>
+         <div className="p-4 border-b border-white/10 flex items-center justify-between">
+           <div>
+             <h2 className="text-lg font-bold text-white">Song Queue</h2>
+             <p className="text-sm text-white/50">{queue.length} song(s) in queue</p>
+           </div>
+           <button
+             onClick={() => setIsPanelOpen(!isPanelOpen)}
+             className="text-white/50 hover:text-white transition"
+           >
+             <span className="text-xl">{isPanelOpen ? "»" : "«"}</span>
+           </button>
+         </div>
 
-        {/* Queue List */}
-        <div className="flex-1 overflow-y-auto p-2">
-          {queue.length === 0 ? (
-            <p className="text-white/50 text-xs text-center py-4">No songs in queue</p>
-          ) : (
-            <div className="space-y-1">
-              {queue.map((song, index) => (
-                <div
-                  key={`${song.code}-${index}`}
-                  className="bg-white/5 rounded px-2 py-1.5 relative group flex items-center gap-2"
+          {/* Search Bar */}
+          <div className="p-4 border-b border-white/10">
+            {/* Letter Filter */}
+            <p className="text-white/50 text-xs mb-2">Filter by letter:</p>
+            <div className="flex items-center gap-1 overflow-x-auto pb-1">
+              <button
+                onClick={() => setLetterFilter(null)}
+                className={`flex-shrink-0 px-2 py-1 text-xs font-semibold rounded transition ${
+                  letterFilter === null
+                    ? "bg-[#FF6B00] text-white"
+                    : "bg-white/10 text-white/70 hover:bg-white/20"
+                }`}
+              >
+                All
+              </button>
+              {Array.from("ABCDEFGHIJKLMNOPQRSTUVWXYZ").map((letter) => (
+                <button
+                  key={letter}
+                  onClick={() => setLetterFilter(letter)}
+                  className={`flex-shrink-0 w-6 h-6 text-xs font-semibold rounded transition flex items-center justify-center ${
+                    letterFilter === letter
+                      ? "bg-[#FF6B00] text-white"
+                      : "bg-white/10 text-white/70 hover:bg-white/20"
+                  }`}
                 >
-                  <button
-                    onClick={() => removeFromQueue(index)}
-                    className="text-white/30 hover:text-red-500 transition text-xs"
-                  >
-                    ×
-                  </button>
-                  <div className="flex-1 min-w-0">
-                    <span className="text-[#FF6B00] font-bold text-xs mr-2">{song.code}</span>
-                    <span className="text-white text-xs truncate">{song.title}</span>
-                    <span className="text-white/50 text-xs truncate ml-1">- {song.artist}</span>
-                  </div>
-                </div>
+                  {letter}
+                </button>
               ))}
             </div>
-          )}
-        </div>
 
-        {/* Search Bar */}
-        <div className="p-4 border-t border-white/10">
-          <input
-            type="text"
-            placeholder="Search code, title, or artist..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full rounded-lg bg-white/10 px-4 py-3 text-white placeholder-white/50 outline-none focus:ring-2 focus:ring-[#FF6B00]"
-          />
+           <input
+             type="text"
+             placeholder="Search code, title, or artist..."
+             value={searchQuery}
+             onChange={(e) => setSearchQuery(e.target.value)}
+             className="w-full rounded-lg bg-white/10 px-4 py-3 text-white placeholder-white/50 outline-none focus:ring-2 focus:ring-[#FF6B00]"
+           />
 
-          {/* Search Results */}
-          {searchQuery && (
-            <div className="mt-3 max-h-60 overflow-y-auto rounded-lg bg-[#2a2a2a] border border-white/10">
-              {searchResults.length > 0 ? (
-                searchResults.map((song) => (
-                  <button
-                    key={song.code}
-                    onClick={() => addToQueue(song)}
-                    className="w-full text-left px-4 py-3 hover:bg-[#FF6B00]/20 transition border-b border-white/5 last:border-b-0"
+           {/* Search Results */}
+           {(searchQuery || letterFilter) && (
+             <div className="mt-3 max-h-60 overflow-y-auto rounded-lg bg-[#2a2a2a] border border-white/10">
+               {searchResults.length > 0 ? (
+                 searchResults.map((song) => (
+                   <div
+                     key={song.code}
+                     className="flex items-center gap-2 px-4 py-3 hover:bg-[#FF6B00]/20 transition border-b border-white/5 last:border-b-0"
+                   >
+                     <div className="flex-1 min-w-0">
+                       <p className="text-[#FF6B00] font-bold text-sm">{song.code}</p>
+                       <p className="text-white text-sm truncate">{song.title}</p>
+                       <p className="text-white/50 text-xs truncate">{song.artist}</p>
+                     </div>
+                     <button
+                       onClick={() => addToQueue(song)}
+                       className="flex-shrink-0 bg-[#FF6B00] hover:bg-[#e55f00] text-white text-xs font-semibold px-3 py-1.5 rounded transition"
+                     >
+                       Reserve
+                     </button>
+                   </div>
+                 ))
+               ) : (
+                 <p className="px-4 py-3 text-white/50 text-sm text-center">
+                   No songs found
+                 </p>
+               )}
+             </div>
+           )}
+         </div>
+
+         {/* Queue List */}
+         <div className="flex-1 overflow-y-auto p-2">
+           {queue.length === 0 ? (
+             <p className="text-white/50 text-xs text-center py-4">No songs in queue</p>
+           ) : (
+             <div className="space-y-1">
+               {queue.map((song, index) => (
+                 <div
+                   key={`${song.code}-${index}`}
+                   className="bg-white/5 rounded px-2 py-1.5 relative group flex items-center gap-2"
+                 >
+                   <button
+                     onClick={() => removeFromQueue(index)}
+                     className="text-white/30 hover:text-red-500 transition text-xs"
+                   >
+                     ×
+                   </button>
+                   <div className="flex-1 min-w-0">
+                     <span className="text-[#FF6B00] font-bold text-xs mr-2">{song.code}</span>
+                     <span className="text-white text-xs truncate">{song.title}</span>
+                     <span className="text-white/50 text-xs truncate ml-1">- {song.artist}</span>
+                   </div>
+                       <button
+                    onClick={() => playNow(index)}
+                    className="flex-shrink-0 text-[10px] bg-[#FF6B00] hover:bg-[#e55f00] text-white font-semibold px-2 py-1 rounded transition opacity-0 group-hover:opacity-100"
                   >
-                    <p className="text-[#FF6B00] font-bold text-sm">{song.code}</p>
-                    <p className="text-white text-sm truncate">{song.title}</p>
-                    <p className="text-white/50 text-xs truncate">{song.artist}</p>
+                    Play Now
                   </button>
-                ))
-              ) : (
-                <p className="px-4 py-3 text-white/50 text-sm text-center">
-                  No songs found
-                </p>
-              )}
-            </div>
-          )}
-        </div>
-      </div>
+                 </div>
+               ))}
+             </div>
+           )}
+         </div>
+       </div>
     </div>
   );
 }
