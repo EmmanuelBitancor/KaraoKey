@@ -2,50 +2,25 @@
 
 export const dynamic = "force-dynamic";
 
-import { useState, useCallback, useEffect } from "react";
-import Link from "next/link";
-import { supabase, isSupabaseConfigured } from "@/lib/supabase";
+import { useState, useCallback, useEffect, useRef } from "react";
+import { supabase } from "@/lib/supabase";
 import type { Database } from "@/lib/database.types";
 import {
-  Chart as ChartJS,
-  CategoryScale,
-  LinearScale,
-  BarElement,
-  Title,
-  Tooltip,
-  Legend,
-  ArcElement,
-  PointElement,
-  LineElement,
-  Filler,
-} from "chart.js";
-import { Bar, Pie, Line } from "react-chartjs-2";
-
-ChartJS.register(
-  CategoryScale,
-  LinearScale,
-  BarElement,
-  Title,
-  Tooltip,
-  Legend,
-  ArcElement,
-  PointElement,
-  LineElement,
-  Filler
-);
+  AdminLogin,
+  AdminSidebar,
+  DashboardCharts,
+  SongList,
+  SongModal,
+  VideoPreviewModal,
+} from "@/components/admin";
+import { useAuth } from "@/hooks/useAuth";
+import { useSongMutations } from "@/hooks/useSongMutations";
 
 type Song = Database["public"]["Tables"]["songs"]["Row"];
-
 type TabType = "dashboard" | "songs";
 
 export default function Admin() {
-  // Auth state - always start as false to avoid hydration mismatch
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [mounted, setMounted] = useState(false);
-  const [passwordInput, setPasswordInput] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
-  const [authError, setAuthError] = useState(false);
-
+  // Songs state
   const [songs, setSongs] = useState<Song[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -67,30 +42,87 @@ export default function Admin() {
   const [title, setTitle] = useState("");
   const [artist, setArtist] = useState("");
   const [youtubeId, setYoutubeId] = useState("");
-  const [submitting, setSubmitting] = useState(false);
-  const [submitSuccess, setSubmitSuccess] = useState(false);
-  const [submitError, setSubmitError] = useState<string | null>(null);
-
-  // Delete state
-  const [deletingCode, setDeletingCode] = useState<string | null>(null);
+  const [editingSong, setEditingSong] = useState<Song | null>(null);
+  const isEditing = editingSong !== null;
 
   // Modal state
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
-  const [editingSong, setEditingSong] = useState<Song | null>(null);
-  const isEditing = editingSong !== null;
 
   // Preview state
   const [previewSong, setPreviewSong] = useState<Song | null>(null);
 
-  const getNextCode = (): string => {
+  // Track if we've fetched songs to avoid cascading renders
+  const hasFetchedSongs = useRef(false);
+  const prevAuthRef = useRef(false);
+
+  // Fetch songs from Supabase
+  const fetchSongs = useCallback(async () => {
+    setLoading(true);
+    const { data, error } = await supabase
+      .from("songs")
+      .select("*")
+      .order("code", { ascending: true });
+
+    if (error) {
+      setError(error.message);
+    } else {
+      setSongs(data || []);
+    }
+    setLoading(false);
+  }, []);
+
+  // Auth hook
+  const {
+    isAuthenticated,
+    mounted,
+    authError,
+    passwordInput,
+    showPassword,
+    setPasswordInput,
+    setShowPassword,
+    handleLogin,
+    handleLogout,
+  } = useAuth({
+    onAuthSuccess: fetchSongs,
+  });
+
+  // Song mutations hook
+  const {
+    submitting,
+    submitError,
+    submitSuccess,
+    setSubmitSuccess,
+    deletingCode,
+    handleSubmit: mutationHandleSubmit,
+    handleDelete,
+    setSubmitError,
+  } = useSongMutations({
+    songs,
+    onSongsChange: setSongs,
+    onError: setError,
+    onSuccess: () => {},
+  });
+
+  // Compute next available code
+  const getNextCode = useCallback((): string => {
     if (songs.length === 0) return "0001";
     const maxCode = songs.reduce((max, song) => {
       const num = parseInt(song.code, 10);
       return !isNaN(num) && num > max ? num : max;
     }, 0);
     return String(maxCode + 1).padStart(4, "0");
-  };
+  }, [songs]);
 
+  // Fetch songs when auth state changes from unauthenticated to authenticated
+  useEffect(() => {
+    if (isAuthenticated && !hasFetchedSongs.current && prevAuthRef.current !== isAuthenticated) {
+      hasFetchedSongs.current = true;
+      fetchSongs();
+    }
+    prevAuthRef.current = isAuthenticated;
+  }, [isAuthenticated, fetchSongs]);
+
+  // Form handlers
   const resetForm = () => {
     setCode("");
     setTitle("");
@@ -123,152 +155,18 @@ export default function Admin() {
     resetForm();
   };
 
-  const fetchSongs = useCallback(async () => {
-    setLoading(true);
-    const { data, error } = await supabase
-      .from("songs")
-      .select("*")
-      .order("code", { ascending: true });
-
-    if (error) {
-      setError(error.message);
-    } else {
-      setSongs(data || []);
-    }
-    setLoading(false);
-  }, []);
-
-  // Restore auth state from sessionStorage after mount
-  useEffect(() => {
-    const storedAuth = sessionStorage.getItem("karaokey-admin-auth");
-    if (storedAuth === "true") {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setIsAuthenticated(true);
-      fetchSongs();
-    }
-    setMounted(true);
-  }, [fetchSongs]);
-
-  // Reset pagination when search or filter changes
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [searchQuery, letterFilter]);
-
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (passwordInput === (process.env.NEXT_PUBLIC_ADMIN_PASSWORD || "")) {
-      setIsAuthenticated(true);
-      setAuthError(false);
-      setPasswordInput("");
-      sessionStorage.setItem("karaokey-admin-auth", "true");
-      fetchSongs();
-    } else {
-      setAuthError(true);
-    }
+  const handleSubmit = (e: React.FormEvent) => {
+    mutationHandleSubmit(
+      e,
+      { code, title, artist, youtubeId },
+      isEditing,
+      editingSong,
+      resetForm,
+      closeAddModal
+    );
   };
 
-  const handleLogout = () => {
-    setIsAuthenticated(false);
-    setSongs([]);
-    sessionStorage.removeItem("karaokey-admin-auth");
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setSubmitting(true);
-    setSubmitError(null);
-    setSubmitSuccess(false);
-
-    // Validate code is 4 digits
-    if (!/^\d{4}$/.test(code)) {
-      setSubmitError("Code must be exactly 4 digits (e.g., 0021)");
-      setSubmitting(false);
-      return;
-    }
-
-    if (!title.trim()) {
-      setSubmitError("Title is required");
-      setSubmitting(false);
-      return;
-    }
-
-    if (!artist.trim()) {
-      setSubmitError("Artist is required");
-      setSubmitting(false);
-      return;
-    }
-
-    const youtubeIdValue = youtubeId.trim() || "UkX9XP4urcM";
-
-    if (isEditing && editingSong) {
-      // Update existing song
-      const { error } = await supabase
-        .from("songs")
-        .update({
-          title: title.trim(),
-          artist: artist.trim(),
-          youtube_id: youtubeIdValue,
-        })
-        .eq("code", editingSong.code);
-
-      if (error) {
-        setSubmitError(error.message);
-      } else {
-        setSubmitSuccess(true);
-        // Update previewSong if it's the same song being edited
-        if (previewSong && previewSong.code === editingSong.code) {
-          setPreviewSong({
-            ...previewSong,
-            title: title.trim(),
-            artist: artist.trim(),
-            youtube_id: youtubeIdValue,
-          });
-        }
-        fetchSongs();
-        setTimeout(() => {
-          closeAddModal();
-        }, 1500);
-      }
-    } else {
-      // Insert new song
-      const { error } = await supabase.from("songs").insert({
-        code,
-        title: title.trim(),
-        artist: artist.trim(),
-        youtube_id: youtubeIdValue,
-      });
-
-      if (error) {
-        if (error.code === "23505") {
-          setSubmitError(`Song with code "${code}" already exists`);
-        } else {
-          setSubmitError(error.message);
-        }
-      } else {
-        setSubmitSuccess(true);
-        fetchSongs();
-        setTimeout(() => {
-          closeAddModal();
-        }, 1500);
-      }
-    }
-
-    setSubmitting(false);
-  };
-
-  const handleDelete = async (songCode: string) => {
-    setDeletingCode(songCode);
-    const { error } = await supabase.from("songs").delete().eq("code", songCode);
-
-    if (error) {
-      setError(error.message);
-    } else {
-      setSongs(songs.filter((s) => s.code !== songCode));
-    }
-    setDeletingCode(null);
-  };
-
-  // Show loading until mounted to avoid hydration mismatch
+  // Show loading until mounted
   if (!mounted) {
     return (
       <div className="min-h-screen bg-[#0D0D0D] text-white flex items-center justify-center">
@@ -280,727 +178,84 @@ export default function Admin() {
   // Login screen
   if (!isAuthenticated) {
     return (
-      <div className="min-h-screen bg-[#0D0D0D] text-white flex flex-col items-center justify-center p-4">
-        <div className="w-full max-w-sm">
-          <div className="text-center mb-8">
-            <Link
-              href="/"
-              className="text-3xl font-bold text-white"
-              style={{ fontFamily: "'Ayaha', sans-serif" }}
-            >
-              Karao<span className="text-[#FF6B00]">KEY</span>
-            </Link>
-            <p className="text-white/50 mt-2">Admin Portal</p>
-          </div>
-
-          {!isSupabaseConfigured() && (
-            <div className="bg-yellow-500/20 border border-yellow-500/50 rounded-lg p-4 mb-6">
-              <p className="text-yellow-400 text-sm font-semibold mb-1">Supabase Not Configured</p>
-              <p className="text-yellow-400/70 text-xs">
-                Please set <code className="bg-yellow-500/20 px-1">NEXT_PUBLIC_SUPABASE_URL</code> and{" "}
-                <code className="bg-yellow-500/20 px-1">NEXT_PUBLIC_SUPABASE_ANON_KEY</code> in your{" "}
-                <code className="bg-yellow-500/20 px-1">.env.local</code> file.
-              </p>
-            </div>
-          )}
-
-          <form onSubmit={handleLogin} className="space-y-4">
-            <div className="relative">
-              <input
-                type={showPassword ? "text" : "password"}
-                placeholder="Enter admin password"
-                value={passwordInput}
-                onChange={(e) => {
-                  setPasswordInput(e.target.value);
-                  setAuthError(false);
-                }}
-                className="w-full rounded-lg bg-white/10 px-4 py-3 pr-12 text-white placeholder-white/50 outline-none focus:ring-2 focus:ring-[#FF6B00]"
-              />
-              <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-white/50 hover:text-white transition"
-              >
-                {showPassword ? (
-                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M3.98 8.223A10.477 10.477 0 0 0 1.934 12c3.857 3.857 10.132 3.857 13.99 0A10.495 10.495 0 0 0 20.031 12m-16.053 0a10.477 10.477 0 0 0 2.046-2.777M3.98 15.774a10.477 10.477 0 0 0 2.046 2.777m16.053 0a10.477 10.477 0 0 0-2.046-2.777M12 12a3.75 3.75 0 1 0 0-7.5 3.75 3.75 0 0 0 0 7.5Z" />
-                  </svg>
-                ) : (
-                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M2.036 12.322a1.012 1.012 0 0 1 0-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178Z" />
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
-                  </svg>
-                )}
-              </button>
-            </div>
-            {authError && (
-                <p className="text-red-500 text-sm mt-2">
-                  Incorrect password. Try again.
-                </p>
-              )}
-
-            <button
-              type="submit"
-              className="w-full bg-[#FF6B00] hover:bg-[#e55f00] text-white font-semibold py-3 rounded-lg transition"
-            >
-              Login
-            </button>
-          </form>
-
-          <p className="text-white/30 text-xs text-center mt-6">
-            Contact your administrator for access
-          </p>
-        </div>
-      </div>
+      <AdminLogin
+        passwordInput={passwordInput}
+        setPasswordInput={setPasswordInput}
+        showPassword={showPassword}
+        setShowPassword={setShowPassword}
+        authError={authError}
+        onLogin={handleLogin}
+      />
     );
   }
 
   // Main admin page
   return (
     <div className="min-h-screen bg-[#0D0D0D] text-white flex">
-      {/* Sidebar - Fixed Position */}
-      <div className={`fixed top-0 left-0 h-screen bg-[#1a1a1a] border-r border-white/10 flex flex-col transition-all duration-300 ${sidebarOpen ? 'w-64' : 'w-16'}`}>
-        {/* Logo & Toggle */}
-        <div className={`p-4 border-b border-white/10 flex items-center ${sidebarOpen ? 'justify-between' : 'justify-center'}`}>
-          {sidebarOpen && (
-            <Link
-              href="/"
-              className="text-xl font-bold text-white"
-              style={{ fontFamily: "'Ayaha', sans-serif" }}
-            >
-              Karao<span className="text-[#FF6B00]">KEY</span>
-            </Link>
-          )}
-          <button
-            onClick={() => setSidebarOpen(!sidebarOpen)}
-            className="text-white/50 hover:text-white transition p-1"
-          >
-            {sidebarOpen ? (
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" />
-              </svg>
-            ) : (
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
-                <path strokeLinecap="round" strokeLinejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
-              </svg>
-            )}
-          </button>
-        </div>
+      <AdminSidebar
+        activeTab={activeTab}
+        onTabChange={setActiveTab}
+        sidebarOpen={sidebarOpen}
+        onToggleSidebar={() => setSidebarOpen(!sidebarOpen)}
+        onLogout={handleLogout}
+      />
 
-        {/* Navigation */}
-        <nav className="flex-1 p-2">
-          <ul className="space-y-2">
-            <li>
-              <button
-                onClick={() => setActiveTab("dashboard")}
-                className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition ${sidebarOpen ? '' : 'justify-center'} ${
-                  activeTab === "dashboard"
-                    ? "bg-[#FF6B00] text-white"
-                    : "text-white/70 hover:bg-white/10 hover:text-white"
-                }`}
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5 flex-shrink-0">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6A2.25 2.25 0 0 1 6 3.75h2.25A2.25 2.25 0 0 1 10.5 6v2.25a2.25 2.25 0 0 1-2.25 2.25H6a2.25 2.25 0 0 1-2.25-2.25V6ZM3.75 15.75A2.25 2.25 0 0 1 6 13.5h2.25a2.25 2.25 0 0 1 2.25 2.25V18a2.25 2.25 0 0 1-2.25 2.25H6A2.25 2.25 0 0 1 3.75 18v-2.25ZM13.5 6a2.25 2.25 0 0 1 2.25-2.25H18A2.25 2.25 0 0 1 20.25 6v2.25A2.25 2.25 0 0 1 18 10.5h-2.25a2.25 2.25 0 0 1-2.25-2.25V6ZM13.5 15.75a2.25 2.25 0 0 1 2.25-2.25H18a2.25 2.25 0 0 1 2.25 2.25V18A2.25 2.25 0 0 1 18 20.25h-2.25A2.25 2.25 0 0 1 13.5 18v-2.25Z" />
-                </svg>
-                {sidebarOpen && <span>Dashboard</span>}
-              </button>
-            </li>
-            <li>
-              <button
-                onClick={() => setActiveTab("songs")}
-                className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition ${sidebarOpen ? '' : 'justify-center'} ${
-                  activeTab === "songs"
-                    ? "bg-[#FF6B00] text-white"
-                    : "text-white/70 hover:bg-white/10 hover:text-white"
-                }`}
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5 flex-shrink-0">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 9l10.5-3m0 6.553v3.75a2.25 2.25 0 0 1-1.632 2.163l-1.32.377a1.803 1.803 0 1 1-.99-3.467l2.31-.66a2.25 2.25 0 0 0 1.632-2.163Zm0 0V2.25L9 5.25v10.303m0 0v3.75a2.25 2.25 0 0 1-1.632 2.163l-1.32.377a1.803 1.803 0 0 1-.99-3.467l2.31-.66A2.25 2.25 0 0 0 9 15.553Z" />
-                </svg>
-                {sidebarOpen && <span>Song List</span>}
-              </button>
-            </li>
-          </ul>
-        </nav>
-
-        {/* Logout button */}
-        <div className="p-2 border-t border-white/10">
-          <button
-            onClick={handleLogout}
-            className={`w-full flex items-center gap-3 px-4 py-3 text-white/70 hover:text-white hover:bg-white/10 rounded-lg transition ${sidebarOpen ? '' : 'justify-center'}`}
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5 flex-shrink-0">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0 0 13.5 3h-6a2.25 2.25 0 0 0-2.25 2.25v13.5A2.25 2.25 0 0 0 7.5 21h6a2.25 2.25 0 0 0 2.25-2.25V15M12 9l-3 3m0 0 3 3m-3-3h12.75" />
-            </svg>
-            {sidebarOpen && <span>Logout</span>}
-          </button>
-        </div>
-      </div>
-
-      {/* Main Content */}
       <div className={`flex-1 overflow-auto transition-all duration-300 ${sidebarOpen ? 'ml-64' : 'ml-16'}`}>
-        {/* Header */}
         <div className="sticky top-0 z-50 bg-[#0D0D0D] border-b border-white/10 px-6 py-4">
-          <div className="flex items-center justify-between">
-            <h1 className="text-2xl font-bold">
-              {activeTab === "dashboard" ? "Dashboard" : "Song Management"}
-            </h1>
-          </div>
+          <h1 className="text-2xl font-bold">
+            {activeTab === "dashboard" ? "Dashboard" : "Song Management"}
+          </h1>
         </div>
 
-        {/* Tab Content */}
         <div className="p-6">
           {activeTab === "dashboard" ? (
-            /* Dashboard Tab */
-            <div className="space-y-6">
-              {/* Stats Cards */}
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                <div className="bg-[#1a1a1a] rounded-lg border border-white/10 p-6">
-                  <p className="text-white/50 text-sm">Total Songs</p>
-                  <p className="text-3xl font-bold text-[#FF6B00]">{songs.length}</p>
-                </div>
-                <div className="bg-[#1a1a1a] rounded-lg border border-white/10 p-6">
-                  <p className="text-white/50 text-sm">Unique Artists</p>
-                  <p className="text-3xl font-bold text-[#FF6B00]">
-                    {new Set(songs.map((s) => s.artist)).size}
-                  </p>
-                </div>
-                <div className="bg-[#1a1a1a] rounded-lg border border-white/10 p-6">
-                  <p className="text-white/50 text-sm">Songs This Month</p>
-                  <p className="text-3xl font-bold text-[#FF6B00]">
-                    {songs.filter((s) => {
-                      const songDate = new Date(s.created_at);
-                      const now = new Date();
-                      return songDate.getMonth() === now.getMonth() && songDate.getFullYear() === now.getFullYear();
-                    }).length}
-                  </p>
-                </div>
-                <div className="bg-[#1a1a1a] rounded-lg border border-white/10 p-6">
-                  <p className="text-white/50 text-sm">Most Common Artist</p>
-                  <p className="text-xl font-bold text-white truncate">
-                    {(() => {
-                      const artistCounts = songs.reduce((acc, song) => {
-                        acc[song.artist] = (acc[song.artist] || 0) + 1;
-                        return acc;
-                      }, {} as Record<string, number>);
-                      const sorted = Object.entries(artistCounts).sort((a, b) => b[1] - a[1]);
-                      return sorted.length > 0 ? sorted[0][0] : "N/A";
-                    })()}
-                  </p>
-                </div>
-              </div>
-
-              {/* Charts */}
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                {/* Songs by Letter Chart */}
-                <div className="bg-[#1a1a1a] rounded-lg border border-white/10 p-6">
-                  <h3 className="text-lg font-semibold mb-4">Songs by Letter</h3>
-                  <div className="h-64">
-                    <Bar
-                      data={{
-                        labels: "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split(""),
-                        datasets: [
-                          {
-                            label: "Songs",
-                            data: "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("").map((letter) =>
-                              songs.filter((s) => s.title.toUpperCase().startsWith(letter)).length
-                            ),
-                            backgroundColor: "#FF6B00",
-                            borderRadius: 4,
-                          },
-                        ],
-                      }}
-                      options={{
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        plugins: {
-                          legend: { display: false },
-                        },
-                        scales: {
-                          y: {
-                            beginAtZero: true,
-                            ticks: { color: "rgba(255,255,255,0.5)" },
-                            grid: { color: "rgba(255,255,255,0.1)" },
-                          },
-                          x: {
-                            ticks: { color: "rgba(255,255,255,0.5)" },
-                            grid: { display: false },
-                          },
-                        },
-                      }}
-                    />
-                  </div>
-                </div>
-
-                {/* Songs by Artist Chart */}
-                <div className="bg-[#1a1a1a] rounded-lg border border-white/10 p-6">
-                  <h3 className="text-lg font-semibold mb-4">Top Artists</h3>
-                  <div className="h-64">
-                    <Pie
-                      data={{
-                        labels: (() => {
-                          const artistCounts = songs.reduce((acc, song) => {
-                            acc[song.artist] = (acc[song.artist] || 0) + 1;
-                            return acc;
-                          }, {} as Record<string, number>);
-                          return Object.entries(artistCounts)
-                            .sort((a, b) => b[1] - a[1])
-                            .slice(0, 8)
-                            .map(([artist]) => artist);
-                        })(),
-                        datasets: [
-                          {
-                            data: (() => {
-                              const artistCounts = songs.reduce((acc, song) => {
-                                acc[song.artist] = (acc[song.artist] || 0) + 1;
-                                return acc;
-                              }, {} as Record<string, number>);
-                              return Object.entries(artistCounts)
-                                .sort((a, b) => b[1] - a[1])
-                                .slice(0, 8)
-                                .map(([, count]) => count);
-                            })(),
-                            backgroundColor: [
-                              "#FF6B00",
-                              "#FF8C42",
-                              "#FFB347",
-                              "#FFCE73",
-                              "#FFE4B5",
-                              "#FFD700",
-                              "#F0A500",
-                              "#CC8800",
-                            ],
-                            borderWidth: 0,
-                          },
-                        ],
-                      }}
-                      options={{
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        plugins: {
-                          legend: {
-                            position: "right",
-                            labels: { color: "rgba(255,255,255,0.7)", boxWidth: 12, padding: 8 },
-                          },
-                        },
-                      }}
-                    />
-                  </div>
-                </div>
-
-                {/* Songs Added Over Time */}
-                <div className="bg-[#1a1a1a] rounded-lg border border-white/10 p-6 lg:col-span-2">
-                  <h3 className="text-lg font-semibold mb-4">Songs Added Over Time</h3>
-                  <div className="h-64">
-                    <Line
-                      data={{
-                        labels: (() => {
-                          const months: string[] = [];
-                          const now = new Date();
-                          for (let i = 5; i >= 0; i--) {
-                            const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
-                            months.push(date.toLocaleDateString("en-US", { month: "short", year: "2-digit" }));
-                          }
-                          return months;
-                        })(),
-                        datasets: [
-                          {
-                            label: "Songs Added",
-                            data: (() => {
-                              const months: number[] = [];
-                              const now = new Date();
-                              for (let i = 5; i >= 0; i--) {
-                                const targetMonth = new Date(now.getFullYear(), now.getMonth() - i, 1);
-                                const count = songs.filter((s) => {
-                                  const songDate = new Date(s.created_at);
-                                  return songDate.getMonth() === targetMonth.getMonth() &&
-                                         songDate.getFullYear() === targetMonth.getFullYear();
-                                }).length;
-                                months.push(count);
-                              }
-                              return months;
-                            })(),
-                            borderColor: "#FF6B00",
-                            backgroundColor: "rgba(255, 107, 0, 0.1)",
-                            fill: true,
-                            tension: 0.4,
-                          },
-                        ],
-                      }}
-                      options={{
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        plugins: {
-                          legend: { display: false },
-                        },
-                        scales: {
-                          y: {
-                            beginAtZero: true,
-                            ticks: { color: "rgba(255,255,255,0.5)" },
-                            grid: { color: "rgba(255,255,255,0.1)" },
-                          },
-                          x: {
-                            ticks: { color: "rgba(255,255,255,0.5)" },
-                            grid: { display: false },
-                          },
-                        },
-                      }}
-                    />
-                  </div>
-                </div>
-              </div>
-            </div>
+            <DashboardCharts songs={songs} />
           ) : (
-            /* Song List Tab */
-            <div className="space-y-6">
-              {/* Configuration warning */}
-              {!isSupabaseConfigured() && (
-                <div className="bg-yellow-500/20 border border-yellow-500/50 rounded-lg p-4">
-                  <p className="text-yellow-400 text-sm font-semibold mb-1">Supabase Not Configured</p>
-                  <p className="text-yellow-400/70 text-xs">
-                    Please set <code className="bg-yellow-500/20 px-1">NEXT_PUBLIC_SUPABASE_URL</code> and{" "}
-                    <code className="bg-yellow-500/20 px-1">NEXT_PUBLIC_SUPABASE_ANON_KEY</code> in your{" "}
-                    <code className="bg-yellow-500/20 px-1">.env.local</code> file, then restart the dev server.
-                  </p>
-                </div>
-              )}
-
-              {/* Error display */}
-              {error && (
-                <div className="bg-red-500/20 border border-red-500/50 rounded-lg p-4">
-                  <p className="text-red-400">{error}</p>
-                  <button
-                    onClick={() => setError(null)}
-                    className="text-red-400/70 hover:text-red-400 text-sm mt-2"
-                  >
-                    Dismiss
-                  </button>
-                </div>
-              )}
-
-              {/* Songs List */}
-              <div className="bg-[#1a1a1a] rounded-lg border border-white/10 overflow-hidden">
-                <div className="p-4 border-b border-white/10 flex items-center justify-between">
-                  <h2 className="text-xl font-bold">Songs ({songs.length})</h2>
-                  <div className="flex items-center gap-3">
-                    <button
-                      onClick={fetchSongs}
-                      disabled={loading}
-                      className="text-white/70 hover:text-white text-sm transition"
-                    >
-                      {loading ? "Loading..." : "Refresh"}
-                    </button>
-                    <button
-                      onClick={openAddModal}
-                      className="bg-[#FF6B00] hover:bg-[#e55f00] text-white font-semibold px-4 py-2 rounded-lg transition"
-                    >
-                      + Add Song
-                    </button>
-                  </div>
-                </div>
-
-                {/* Search Bar */}
-                <div className="px-4 py-3 border-b border-white/10">
-                  <input
-                    type="text"
-                    placeholder="Search song or artist..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-full rounded-lg bg-white/10 px-4 py-2 text-white placeholder-white/50 outline-none focus:ring-2 focus:ring-[#FF6B00]"
-                  />
-                </div>
-
-                {/* Letter Filter */}
-                <div className="px-4 py-3 border-b border-white/10">
-                  <p className="text-white/50 text-xs mb-2">Filter by letter:</p>
-                  <div className="flex items-center gap-1 overflow-x-auto pb-1">
-                    <button
-                      onClick={() => setLetterFilter(null)}
-                      className={`flex-shrink-0 px-2 py-1 text-xs font-semibold rounded transition ${
-                        letterFilter === null
-                          ? "bg-[#FF6B00] text-white"
-                          : "bg-white/10 text-white/70 hover:bg-white/20"
-                      }`}
-                    >
-                      All
-                    </button>
-                    {Array.from("ABCDEFGHIJKLMNOPQRSTUVWXYZ").map((letter) => (
-                      <button
-                        key={letter}
-                        onClick={() => setLetterFilter(letter)}
-                        className={`flex-shrink-0 w-7 h-7 text-xs font-semibold rounded transition flex items-center justify-center ${
-                          letterFilter === letter
-                            ? "bg-[#FF6B00] text-white"
-                            : "bg-white/10 text-white/70 hover:bg-white/20"
-                        }`}
-                      >
-                        {letter}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Songs Table */}
-                <div className="overflow-x-auto">
-                  <table className="w-full">
-                    <thead className="bg-[#FF6B00]">
-                      <tr>
-                        <th className="px-4 py-3 text-left text-sm font-semibold uppercase tracking-wider">
-                          Code
-                        </th>
-                        <th className="px-4 py-3 text-left text-sm font-semibold uppercase tracking-wider">
-                          Title
-                        </th>
-                        <th className="px-4 py-3 text-left text-sm font-semibold uppercase tracking-wider">
-                          Artist
-                        </th>
-                        <th className="px-4 py-3 text-left text-sm font-semibold uppercase tracking-wider">
-                          YouTube ID
-                        </th>
-                        <th className="px-4 py-3 text-right text-sm font-semibold uppercase tracking-wider">
-                          Action
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-white/10">
-                      {(() => {
-                        const filteredSongs = songs.filter((song) => {
-                          const matchesSearch =
-                            searchQuery === "" ||
-                            song.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                            song.artist.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                            song.code.includes(searchQuery);
-
-                          const matchesLetter =
-                            !letterFilter ||
-                            song.title.toUpperCase().startsWith(letterFilter);
-
-                          return matchesSearch && matchesLetter;
-                        });
-
-                        const totalPages = Math.ceil(filteredSongs.length / itemsPerPage);
-                        const startIndex = (currentPage - 1) * itemsPerPage;
-                        const paginatedSongs = filteredSongs.slice(startIndex, startIndex + itemsPerPage);
-
-                        return (
-                          <>
-                            {paginatedSongs.map((song) => (
-                              <tr key={song.code} className="hover:bg-white/5">
-                                <td className="px-4 py-3 text-[#FF6B00] font-bold">
-                                  {song.code}
-                                </td>
-                                <td className="px-4 py-3 text-white">{song.title}</td>
-                                <td className="px-4 py-3 text-white/70">{song.artist}</td>
-                                <td className="px-4 py-3 text-white/50 text-sm font-mono">
-                                  {song.youtube_id}
-                                </td>
-                                <td className="px-4 py-3 text-right">
-                                  <button
-                                    onClick={() => setPreviewSong(song)}
-                                    className="text-green-400/70 hover:text-green-500 mr-3 text-sm transition"
-                                  >
-                                    Preview
-                                  </button>
-                                  <button
-                                    onClick={() => openEditModal(song)}
-                                    className="text-blue-400/70 hover:text-blue-500 mr-3 text-sm transition"
-                                  >
-                                    Edit
-                                  </button>
-                                  <button
-                                    onClick={() => handleDelete(song.code)}
-                                    disabled={deletingCode === song.code}
-                                    className="text-red-400/70 hover:text-red-500 disabled:opacity-50 text-sm transition"
-                                  >
-                                    {deletingCode === song.code ? "..." : "Delete"}
-                                  </button>
-                                </td>
-                              </tr>
-                            ))}
-
-                            {/* Pagination Controls */}
-                            {totalPages > 1 && (
-                              <tr>
-                                <td colSpan={5} className="px-4 py-3">
-                                  <div className="flex items-center justify-between">
-                                    <p className="text-white/50 text-sm">
-                                      Showing {startIndex + 1}-{Math.min(startIndex + itemsPerPage, filteredSongs.length)} of {filteredSongs.length} songs
-                                    </p>
-                                    <div className="flex items-center gap-2">
-                                      <button
-                                        onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                                        disabled={currentPage === 1}
-                                        className="px-3 py-1 bg-white/10 hover:bg-white/20 disabled:opacity-50 disabled:cursor-not-allowed text-white/70 hover:text-white rounded transition"
-                                      >
-                                        Prev
-                                      </button>
-                                      <span className="text-white/50 text-sm">
-                                        Page {currentPage} of {totalPages}
-                                      </span>
-                                      <button
-                                        onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-                                        disabled={currentPage === totalPages}
-                                        className="px-3 py-1 bg-white/10 hover:bg-white/20 disabled:opacity-50 disabled:cursor-not-allowed text-white/70 hover:text-white rounded transition"
-                                      >
-                                        Next
-                                      </button>
-                                    </div>
-                                  </div>
-                                </td>
-                              </tr>
-                            )}
-                          </>
-                        );
-                      })()}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            </div>
+            <SongList
+              songs={songs}
+              loading={loading}
+              error={error}
+              searchQuery={searchQuery}
+              setSearchQuery={setSearchQuery}
+              letterFilter={letterFilter}
+              setLetterFilter={setLetterFilter}
+              currentPage={currentPage}
+              setCurrentPage={setCurrentPage}
+              itemsPerPage={itemsPerPage}
+              deletingCode={deletingCode}
+              onRefresh={fetchSongs}
+              onAddSong={openAddModal}
+              onPreview={setPreviewSong}
+              onEdit={openEditModal}
+              onDelete={handleDelete}
+              onDismissError={() => setError(null)}
+            />
           )}
         </div>
       </div>
 
-      {/* Add/Edit Song Modal */}
-      {isAddModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70">
-          <div className="bg-[#1a1a1a] rounded-lg border border-white/10 w-full max-w-md mx-4 p-6">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-xl font-bold">{isEditing ? "Edit Song" : "Add New Song"}</h2>
-              <button
-                onClick={closeAddModal}
-                className="text-white/50 hover:text-white transition"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
+      <SongModal
+        isOpen={isAddModalOpen}
+        isEditing={isEditing}
+        code={code}
+        title={title}
+        artist={artist}
+        youtubeId={youtubeId}
+        submitting={submitting}
+        submitError={submitError}
+        submitSuccess={submitSuccess}
+        onCodeChange={setCode}
+        onTitleChange={setTitle}
+        onArtistChange={setArtist}
+        onYoutubeIdChange={setYoutubeId}
+        onSubmit={handleSubmit}
+        onClose={closeAddModal}
+      />
 
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div>
-                <label className="block text-sm text-white/70 mb-1">
-                  Song Code
-                </label>
-                <input
-                  type="text"
-                  placeholder="0001"
-                  value={code}
-                  readOnly
-                  className="w-full rounded-lg bg-white/5 px-4 py-2 text-[#FF6B00] font-bold cursor-not-allowed outline-none"
-                  maxLength={4}
-                />
-                {isEditing ? null : (
-                  <p className="text-white/40 text-xs mt-1">Auto-generated</p>
-                )}
-              </div>
-
-              <div>
-                <label className="block text-sm text-white/70 mb-1">
-                  Title *
-                </label>
-                <input
-                  type="text"
-                  placeholder="Song title"
-                  value={title}
-                  onChange={(e) => setTitle(e.target.value)}
-                  className="w-full rounded-lg bg-white/10 px-4 py-2 text-white placeholder-white/50 outline-none focus:ring-2 focus:ring-[#FF6B00]"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm text-white/70 mb-1">
-                  Artist *
-                </label>
-                <input
-                  type="text"
-                  placeholder="Artist name"
-                  value={artist}
-                  onChange={(e) => setArtist(e.target.value)}
-                  className="w-full rounded-lg bg-white/10 px-4 py-2 text-white placeholder-white/50 outline-none focus:ring-2 focus:ring-[#FF6B00]"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm text-white/70 mb-1">
-                  YouTube ID
-                </label>
-                <input
-                  type="text"
-                  placeholder="UkX9XP4urcM"
-                  value={youtubeId}
-                  onChange={(e) => setYoutubeId(e.target.value)}
-                  className="w-full rounded-lg bg-white/10 px-4 py-2 text-white placeholder-white/50 outline-none focus:ring-2 focus:ring-[#FF6B00]"
-                />
-                <p className="text-white/40 text-xs mt-1">
-                  Video ID from YouTube URL
-                </p>
-              </div>
-
-              {submitError && (
-                <p className="text-red-400 text-sm">{submitError}</p>
-              )}
-
-              {submitSuccess && (
-                <p className="text-green-400 text-sm">
-                  {isEditing ? "Song updated successfully!" : "Song added successfully!"}
-                </p>
-              )}
-
-              <div className="flex gap-3 pt-2">
-                <button
-                  type="button"
-                  onClick={closeAddModal}
-                  className="flex-1 bg-white/10 hover:bg-white/20 text-white font-semibold py-2 rounded-lg transition"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={submitting}
-                  className="flex-1 bg-[#FF6B00] hover:bg-[#e55f00] disabled:bg-[#FF6B00]/50 text-white font-semibold py-2 rounded-lg transition"
-                >
-                  {submitting ? "Saving..." : (isEditing ? "Update Song" : "Add Song")}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* Video Preview Modal */}
-      {previewSong && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70">
-          <div className="bg-[#1a1a1a] rounded-lg border border-white/10 w-full max-w-2xl mx-4 p-6">
-            <div className="flex items-center justify-between mb-4">
-              <div>
-                <h2 className="text-xl font-bold">Video Preview</h2>
-                <p className="text-white/50 text-sm">{previewSong.title} - {previewSong.artist}</p>
-              </div>
-              <button
-                onClick={() => setPreviewSong(null)}
-                className="text-white/50 hover:text-white transition"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
-            <div className="aspect-video rounded-lg overflow-hidden bg-black">
-              <iframe
-                key={previewSong.youtube_id}
-                src={`https://www.youtube.com/embed/${previewSong.youtube_id}?autoplay=1`}
-                className="w-full h-full"
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                allowFullScreen
-              />
-            </div>
-            <p className="text-white/40 text-xs mt-2 text-center">
-              YouTube ID: {previewSong.youtube_id}
-            </p>
-          </div>
-        </div>
-      )}
+      <VideoPreviewModal
+        song={previewSong}
+        onClose={() => setPreviewSong(null)}
+      />
     </div>
   );
 }

@@ -4,6 +4,10 @@ import "./globals.css";
 export const metadata: Metadata = {
   title: "KaraoKey - Sing like no one's watching",
   description: "Your lightweight karaoke companion, powered by YouTube.",
+  icons: {
+    icon: "/web-app-manifest-512x512.png",
+    apple: "/apple-touch-icon.png",
+  },
 };
 
 export default function RootLayout({

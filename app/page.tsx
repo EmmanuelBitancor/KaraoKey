@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { supabase, isSupabaseConfigured } from "@/lib/supabase";
+import { supabase } from "@/lib/supabase";
 import type { Database } from "@/lib/database.types";
 
 type Song = Database["public"]["Tables"]["songs"]["Row"];
@@ -11,7 +11,6 @@ type Song = Database["public"]["Tables"]["songs"]["Row"];
 export default function Hero() {
   const [code, setCode] = useState("");
   const [songs, setSongs] = useState<Song[]>([]);
-  const [loading, setLoading] = useState(true);
   const router = useRouter();
 
   const matchedSong = songs.find((song) => song.code === code);
@@ -24,7 +23,6 @@ export default function Hero() {
 
   useEffect(() => {
     async function fetchSongs() {
-      setLoading(true);
       const { data, error } = await supabase
         .from("songs")
         .select("*")
@@ -33,7 +31,6 @@ export default function Hero() {
       if (!error && data) {
         setSongs(data);
       }
-      setLoading(false);
     }
     fetchSongs();
   }, []);
