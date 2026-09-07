@@ -1,10 +1,26 @@
 "use client";
 
-import { useSearchParams, useRouter } from "next/navigation";
-import Link from "next/link";
-import { Suspense, useState, useRef, useEffect, useCallback } from "react";
+import { useSearchParams } from "next/navigation";
+import { Suspense, useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "@/lib/supabase";
 import type { Database } from "@/lib/database.types";
+import {
+  SingzoneHeader,
+  SingzoneQueuePanel,
+  SingzoneVideoPlayer,
+  QueuePreviewBanner,
+} from "@/components/singzone";
+import { useSongQueue } from "@/hooks/useSongQueue";
+import { useYouTubePlayer } from "@/hooks/useYouTubePlayer";
+
+type Song = Database["public"]["Tables"]["songs"]["Row"];
+
+interface CurrentSong {
+  code: string;
+  title: string;
+  artist: string;
+  youtubeId: string;
+}
 
 interface QueuedSong {
   code: string;
@@ -13,43 +29,25 @@ interface QueuedSong {
   youtubeId: string;
 }
 
-type Song = Database["public"]["Tables"]["songs"]["Row"];
-
-interface YouTubePlayer {
-  destroy: () => void;
-  getCurrentTime: () => number;
-  getDuration: () => number;
-  playVideo: () => void;
-  pauseVideo: () => void;
-}
-
 function SingzoneContent() {
   const searchParams = useSearchParams();
-  const router = useRouter();
   const code = searchParams.get("code") || "0000";
   const title = searchParams.get("title") || "Unknown Song";
   const artist = searchParams.get("artist") || "Unknown Artist";
   const youtubeIdParam = searchParams.get("youtubeId") || "";
 
   const [songs, setSongs] = useState<Song[]>([]);
-  const [queue, setQueue] = useState<QueuedSong[]>([]);
-  const [currentSong, setCurrentSong] = useState({ code, title, artist, youtubeId: youtubeIdParam });
-  const [searchQuery, setSearchQuery] = useState("");
-  const [letterFilter, setLetterFilter] = useState<string | null>(null);
+  const [currentSong, setCurrentSong] = useState<CurrentSong>({
+    code,
+    title,
+    artist,
+    youtubeId: youtubeIdParam,
+  });
+  const [playerVideoId, setPlayerVideoId] = useState<string | null>(
+    youtubeIdParam || null
+  );
   const [isPanelOpen, setIsPanelOpen] = useState(true);
-  const [isExiting, setIsExiting] = useState(false);
-  const [videoProgress, setVideoProgress] = useState(0);
-  const [videoDuration, setVideoDuration] = useState(240);
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [playerVideoId, setPlayerVideoId] = useState<string | null>(youtubeIdParam || null);
-  const playerRef = useRef<YouTubePlayer | null>(null);
-  const containerRef = useRef<HTMLDivElement>(null);
   const queueRef = useRef<QueuedSong[]>([]);
-
-  // Keep queueRef in sync with queue state
-  useEffect(() => {
-    queueRef.current = queue;
-  }, [queue]);
 
   // Fetch songs from Supabase on mount
   useEffect(() => {
@@ -75,272 +73,103 @@ function SingzoneContent() {
           .select("youtube_id")
           .eq("code", code)
           .single();
-        
+
         if (data?.youtube_id) {
           setPlayerVideoId(data.youtube_id);
-          setCurrentSong(prev => ({ ...prev, youtubeId: data.youtube_id }));
-          // Update URL with youtubeId
-          router.replace(
-            `/singzone?code=${code}&title=${encodeURIComponent(title)}&artist=${encodeURIComponent(artist)}&youtubeId=${encodeURIComponent(data.youtube_id)}`
-          );
+          setCurrentSong((prev) => ({
+            ...prev,
+            youtubeId: data.youtube_id,
+          }));
         }
       }
     }
     fetchYoutubeId();
-  }, [code, youtubeIdParam, title, artist, router]);
+  }, [code, youtubeIdParam]);
 
-  const playNext = useCallback(() => {
+  // YouTube player hook
+  const handleVideoEnd = useCallback(() => {
     const currentQueue = queueRef.current;
     if (currentQueue.length > 0) {
       const next = currentQueue[0];
-      setCurrentSong({ 
-        code: next.code, 
-        title: next.title, 
+      setCurrentSong({
+        code: next.code,
+        title: next.title,
         artist: next.artist,
-        youtubeId: next.youtubeId 
+        youtubeId: next.youtubeId,
       });
       setPlayerVideoId(next.youtubeId);
-      setQueue(currentQueue.slice(1));
-      router.replace(
-        `/singzone?code=${next.code}&title=${encodeURIComponent(next.title)}&artist=${encodeURIComponent(next.artist)}&youtubeId=${encodeURIComponent(next.youtubeId)}`
-      );
+      queueRef.current = currentQueue.slice(1);
     } else {
-      setIsExiting(true);
-      setTimeout(() => {
-        router.push("/");
-      }, 500);
+      exitToHome();
     }
-  }, [router]);
+  }, []);
 
-  // Initialize YouTube player when videoId changes
+  const {
+    containerRef,
+    videoProgress,
+    videoDuration,
+    isPlaying,
+    isExiting,
+    formatTime,
+    exitToHome,
+  } = useYouTubePlayer({
+    videoId: playerVideoId,
+    onVideoEnd: handleVideoEnd,
+  });
+
+  // Song queue hook
+  const {
+    queue,
+    searchQuery,
+    letterFilter,
+    setSearchQuery,
+    setLetterFilter,
+    addToQueue,
+    removeFromQueue,
+    playNow,
+  } = useSongQueue({ songs });
+
+  // Keep queueRef in sync
   useEffect(() => {
-    // Don't init if no videoId
-    if (!playerVideoId) return;
-    
-    const initPlayer = () => {
-      if (playerRef.current) {
-        playerRef.current.destroy();
-        playerRef.current = null;
-      }
-      
-      if (window.YT && containerRef.current) {
-        playerRef.current = new window.YT.Player(containerRef.current, {
-          videoId: playerVideoId,
-          playerVars: {
-            autoplay: 1,
-            mute: 0,
-            loop: 0,
-          },
-          events: {
-            onStateChange: (event: { data: number }) => {
-              if (event.data === window.YT.PlayerState.PLAYING) {
-                setIsPlaying(true);
-              } else if (
-                event.data === window.YT.PlayerState.PAUSED ||
-                event.data === window.YT.PlayerState.ENDED
-              ) {
-                setIsPlaying(false);
-                if (event.data === window.YT.PlayerState.ENDED) {
-                  playNext();
-                }
-              }
-            },
-            onReady: () => {
-              if (playerRef.current) {
-                const duration = playerRef.current.getDuration();
-                if (duration) setVideoDuration(duration);
-              }
-            },
-          },
-        });
-      }
-    };
+    queueRef.current = queue;
+  }, [queue]);
 
-    // Wait for YT to be available, then init
-    if (window.YT && window.YT.Player) {
-      initPlayer();
-    } else {
-      // Set up callback for when YT API loads
-      window.onYouTubeIframeAPIReady = initPlayer;
-      // Ensure script is loaded
-      if (typeof window.YT === "undefined") {
-        const tag = document.createElement("script");
-        tag.src = "https://www.youtube.com/iframe_api";
-        const firstScriptTag = document.getElementsByTagName("script")[0];
-        firstScriptTag.parentNode?.insertBefore(tag, firstScriptTag);
-      }
+  const handlePlayNextFromBanner = useCallback(() => {
+    if (queue.length > 0) {
+      const next = queue[0];
+      setCurrentSong({
+        code: next.code,
+        title: next.title,
+        artist: next.artist,
+        youtubeId: next.youtubeId,
+      });
+      setPlayerVideoId(next.youtubeId);
+      queueRef.current = queue.slice(1);
     }
-
-    return () => {
-      if (playerRef.current) {
-        playerRef.current.destroy();
-        playerRef.current = null;
-      }
-    };
-  }, [playerVideoId]);
-
-  // Poll player state for progress
-  useEffect(() => {
-    const interval = setInterval(() => {
-      if (playerRef.current && isPlaying) {
-        const currentTime = playerRef.current.getCurrentTime?.();
-        const duration = playerRef.current.getDuration?.();
-        if (typeof currentTime === "number") {
-          setVideoProgress(currentTime);
-        }
-        if (typeof duration === "number" && duration > 0) {
-          setVideoDuration(duration);
-        }
-      }
-    }, 250);
-
-    return () => clearInterval(interval);
-  }, [isPlaying]);
-
-  const progressPercent = videoDuration > 0 ? (videoProgress / videoDuration) * 100 : 0;
-  const formatTime = (seconds: number) =>
-    `${Math.floor(seconds / 60)}:${String(Math.floor(seconds % 60)).padStart(2, "0")}`;
-
-  // Use fetched songs for searching instead of hardcoded database
-  const searchResults = songs.filter(
-    (song) => {
-      const matchesSearch = searchQuery === "" ||
-        song.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        song.artist.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        song.code.includes(searchQuery);
-      
-      const matchesLetter = !letterFilter ||
-        song.title.toUpperCase().startsWith(letterFilter);
-      
-      return matchesSearch && matchesLetter;
-    }
-  );
-
-  const addToQueue = (song: Song) => {
-    const queuedSong: QueuedSong = {
-      code: song.code,
-      title: song.title,
-      artist: song.artist,
-      youtubeId: song.youtube_id,
-    };
-    
-    if (!queue.find((q) => q.code === song.code)) {
-      setQueue([...queue, queuedSong]);
-    }
-    setSearchQuery("");
-  };
-
-  const removeFromQueue = (index: number) => {
-    const newQueue = [...queue];
-    newQueue.splice(index, 1);
-    setQueue(newQueue);
-  };
-
-  const playNow = (index: number) => {
-    const song = queue[index];
-    setCurrentSong({
-      code: song.code,
-      title: song.title,
-      artist: song.artist,
-      youtubeId: song.youtubeId,
-    });
-    setPlayerVideoId(song.youtubeId);
-    // Remove this song and all songs before it from queue
-    setQueue(queue.slice(index + 1));
-    router.replace(
-      `/singzone?code=${song.code}&title=${encodeURIComponent(song.title)}&artist=${encodeURIComponent(song.artist)}&youtubeId=${encodeURIComponent(song.youtubeId)}`
-    );
-  };
+  }, [queue]);
 
   return (
-    <div className={`min-h-screen bg-[#0D0D0D] text-white flex relative transition-opacity duration-500 ${isExiting ? "opacity-0" : "opacity-100"}`}>
+    <div
+      className={`min-h-screen bg-[#0D0D0D] text-white flex relative transition-opacity duration-500 ${
+        isExiting ? "opacity-0" : "opacity-100"
+      }`}
+    >
       {/* Main Content */}
       <div className="flex-1 flex flex-col">
-        {/* Header */}
-        <div className="sticky top-0 z-50 bg-[#0D0D0D] border-b border-white/10 px-4 py-4">
-          <div className="mx-auto max-w-6xl">
-            <div className="flex items-center justify-between">
-              <Link
-                href="/songbook"
-                className="flex items-center gap-2 text-white/70 hover:text-white transition"
-              >
-                <span className="text-xl">←</span>
-                <span className="text-sm">Back to Songbook</span>
-              </Link>
-              <Link
-                href="/"
-                className="text-2xl font-bold text-white"
-                style={{ fontFamily: "'Ayaha', sans-serif" }}
-              >
-                Karao<span className="text-[#FF6B00]">KEY</span>
-              </Link>
-            </div>
-          </div>
-        </div>
+        <SingzoneHeader />
 
-        {/* Queue Preview Banner (when panel is closed) */}
-        {!isPanelOpen && queue.length > 0 && (
-          <div
-            onClick={() => {
-              const next = queue[0];
-              setCurrentSong({ 
-                code: next.code, 
-                title: next.title, 
-                artist: next.artist,
-                youtubeId: next.youtubeId 
-              });
-              setPlayerVideoId(next.youtubeId);
-              setQueue(queue.slice(1));
-              router.replace(
-                `/singzone?code=${next.code}&title=${encodeURIComponent(next.title)}&artist=${encodeURIComponent(next.artist)}&youtubeId=${encodeURIComponent(next.youtubeId)}`
-              );
-            }}
-            className="bg-[#1a1a1a] px-4 py-3 border-b border-white/10 cursor-pointer hover:bg-[#1a1a1a]/80 transition"
-          >
-            <div className="max-w-5xl mx-auto flex items-center justify-between">
-              <div className="flex items-center gap-3 overflow-hidden">
-                <span className="bg-[#FF6B00] text-white text-xs font-bold px-2 py-1 rounded">
-                  UP NEXT
-                </span>
-                <span className="text-[#FF6B00] font-bold text-sm">{queue[0].code}</span>
-                <span className="text-white text-sm truncate">{queue[0].title}</span>
-                <span className="text-white/50 text-sm truncate">- {queue[0].artist}</span>
-                {queue.length > 1 && (
-                  <span className="text-white/50 text-xs">+{queue.length - 1} more</span>
-                )}
-              </div>
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setIsPanelOpen(true);
-                }}
-                className="text-white/50 hover:text-white text-sm"
-              >
-                View All
-              </button>
-            </div>
-          </div>
-        )}
+        <QueuePreviewBanner
+          queue={queue}
+          onPlayNext={handlePlayNextFromBanner}
+          onOpenPanel={() => setIsPanelOpen(true)}
+        />
 
-        {/* Video Player */}
-        <div className="flex-1 flex flex-col items-center justify-center p-4">
-          <div className="w-full max-w-5xl aspect-video bg-black rounded-lg overflow-hidden shadow-2xl">
-            <div ref={containerRef} className="w-full h-full" />
-          </div>
-          {/* Progress Bar */}
-          <div className="w-full max-w-5xl mt-2">
-            <div className="h-1 bg-white/20 rounded-full overflow-hidden">
-              <div
-                className="h-full bg-[#FF6B00] transition-all duration-100"
-                style={{ width: `${progressPercent}%` }}
-              />
-            </div>
-            <div className="flex justify-between text-xs text-white/50 mt-1">
-              <span>{formatTime(videoProgress)}</span>
-              <span>{formatTime(videoDuration)}</span>
-            </div>
-          </div>
-        </div>
+        <SingzoneVideoPlayer
+          ref={containerRef}
+          videoProgress={videoProgress}
+          videoDuration={videoDuration}
+          formatTime={formatTime}
+        />
       </div>
 
       {/* Floating Toggle Button */}
@@ -353,156 +182,21 @@ function SingzoneContent() {
         </button>
       )}
 
-       {/* Side Panel - Queue */}
-       <div className={`bg-[#1a1a1a] border-l border-white/10 flex flex-col transition-all duration-300 ${isPanelOpen ? "w-80" : "w-0 border-0 overflow-hidden"}`}>
-         <div className="p-4 border-b border-white/10 flex items-center justify-between">
-           <div>
-             <h2 className="text-lg font-bold text-white">Song Queue</h2>
-             <p className="text-sm text-white/50">{queue.length} song(s) in queue</p>
-           </div>
-           <button
-             onClick={() => setIsPanelOpen(!isPanelOpen)}
-             className="text-white/50 hover:text-white transition"
-           >
-             <span className="text-xl">{isPanelOpen ? "»" : "«"}</span>
-           </button>
-         </div>
-
-          {/* Search Bar */}
-          <div className="p-4 border-b border-white/10">
-            {/* Letter Filter */}
-            <p className="text-white/50 text-xs mb-2">Filter by letter:</p>
-            <div className="flex items-center gap-1 overflow-x-auto pb-1">
-              <button
-                onClick={() => setLetterFilter(null)}
-                className={`flex-shrink-0 px-2 py-1 text-xs font-semibold rounded transition ${
-                  letterFilter === null
-                    ? "bg-[#FF6B00] text-white"
-                    : "bg-white/10 text-white/70 hover:bg-white/20"
-                }`}
-              >
-                All
-              </button>
-              {Array.from("ABCDEFGHIJKLMNOPQRSTUVWXYZ").map((letter) => (
-                <button
-                  key={letter}
-                  onClick={() => setLetterFilter(letter)}
-                  className={`flex-shrink-0 w-6 h-6 text-xs font-semibold rounded transition flex items-center justify-center ${
-                    letterFilter === letter
-                      ? "bg-[#FF6B00] text-white"
-                      : "bg-white/10 text-white/70 hover:bg-white/20"
-                  }`}
-                >
-                  {letter}
-                </button>
-              ))}
-            </div>
-
-           <input
-             type="text"
-             placeholder="Search code, title, or artist..."
-             value={searchQuery}
-             onChange={(e) => setSearchQuery(e.target.value)}
-             className="w-full rounded-lg bg-white/10 px-4 py-3 text-white placeholder-white/50 outline-none focus:ring-2 focus:ring-[#FF6B00]"
-           />
-
-           {/* Search Results */}
-           {(searchQuery || letterFilter) && (
-             <div className="mt-3 max-h-60 overflow-y-auto rounded-lg bg-[#2a2a2a] border border-white/10">
-               {searchResults.length > 0 ? (
-                 searchResults.map((song) => (
-                   <div
-                     key={song.code}
-                     className="flex items-center gap-2 px-4 py-3 hover:bg-[#FF6B00]/20 transition border-b border-white/5 last:border-b-0"
-                   >
-                     <div className="flex-1 min-w-0">
-                       <p className="text-[#FF6B00] font-bold text-sm">{song.code}</p>
-                       <p className="text-white text-sm truncate">{song.title}</p>
-                       <p className="text-white/50 text-xs truncate">{song.artist}</p>
-                     </div>
-                     <button
-                       onClick={() => addToQueue(song)}
-                       className="flex-shrink-0 bg-[#FF6B00] hover:bg-[#e55f00] text-white text-xs font-semibold px-3 py-1.5 rounded transition"
-                     >
-                       Reserve
-                     </button>
-                   </div>
-                 ))
-               ) : (
-                 <p className="px-4 py-3 text-white/50 text-sm text-center">
-                   No songs found
-                 </p>
-               )}
-             </div>
-           )}
-         </div>
-
-         {/* Queue List */}
-         <div className="flex-1 overflow-y-auto p-2">
-           {queue.length === 0 ? (
-             <p className="text-white/50 text-xs text-center py-4">No songs in queue</p>
-           ) : (
-             <div className="space-y-1">
-               {queue.map((song, index) => (
-                 <div
-                   key={`${song.code}-${index}`}
-                   className="bg-white/5 rounded px-2 py-1.5 relative group flex items-center gap-2"
-                 >
-                   <button
-                     onClick={() => removeFromQueue(index)}
-                     className="text-white/30 hover:text-red-500 transition text-xs"
-                   >
-                     ×
-                   </button>
-                   <div className="flex-1 min-w-0">
-                     <span className="text-[#FF6B00] font-bold text-xs mr-2">{song.code}</span>
-                     <span className="text-white text-xs truncate">{song.title}</span>
-                     <span className="text-white/50 text-xs truncate ml-1">- {song.artist}</span>
-                   </div>
-                       <button
-                    onClick={() => playNow(index)}
-                    className="flex-shrink-0 text-[10px] bg-[#FF6B00] hover:bg-[#e55f00] text-white font-semibold px-2 py-1 rounded transition opacity-0 group-hover:opacity-100"
-                  >
-                    Play Now
-                  </button>
-                 </div>
-               ))}
-             </div>
-           )}
-         </div>
-       </div>
+      <SingzoneQueuePanel
+        isPanelOpen={isPanelOpen}
+        queue={queue}
+        searchQuery={searchQuery}
+        letterFilter={letterFilter}
+        songs={songs}
+        onTogglePanel={() => setIsPanelOpen(!isPanelOpen)}
+        onSearchChange={setSearchQuery}
+        onLetterFilterChange={setLetterFilter}
+        onAddToQueue={addToQueue}
+        onRemoveFromQueue={removeFromQueue}
+        onPlayNow={playNow}
+      />
     </div>
   );
-}
-
-// Extend Window interface for YouTube API
-interface YouTubePlayerConstructor {
-  new (element: HTMLElement, options: {
-    videoId: string;
-    playerVars?: Record<string, number>;
-    events?: {
-      onReady?: () => void;
-      onStateChange?: (event: { data: number }) => void;
-    };
-  }): YouTubePlayer;
-}
-
-interface YouTubeAPI {
-  Player: YouTubePlayerConstructor;
-  PlayerState: {
-    PLAYING: number;
-    PAUSED: number;
-    ENDED: number;
-    BUFFERING: number;
-    CUED: number;
-  };
-}
-
-declare global {
-  interface Window {
-    YT: YouTubeAPI;
-    onYouTubeIframeAPIReady: () => void;
-  }
 }
 
 export default function Singzone() {
