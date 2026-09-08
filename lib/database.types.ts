@@ -28,6 +28,39 @@ export type Database = {
         };
         Relationships: [];
       };
+      feedback: {
+        Row: {
+          id: string;
+          type: string;
+          comment: string | null;
+          rating: number | null;
+          suggestion: string | null;
+          name: string | null;
+          email: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          type: string;
+          comment?: string | null;
+          rating?: number | null;
+          suggestion?: string | null;
+          name?: string | null;
+          email?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          type?: string;
+          comment?: string | null;
+          rating?: number | null;
+          suggestion?: string | null;
+          name?: string | null;
+          email?: string | null;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
     };
     Views: {
       [_ in never]: never;
@@ -43,3 +76,5 @@ export type Database = {
     };
   };
 };
+
+export type Song = Database["public"]["Tables"]["songs"]["Row"];

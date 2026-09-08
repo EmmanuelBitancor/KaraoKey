@@ -119,8 +119,8 @@ export default function SongbookTable({
                   <td className="px-6 py-4 text-[#FF6B00] font-bold">
                     {song.code}
                   </td>
-                  <td className="px-6 py-4 text-white">{song.title}</td>
-                  <td className="px-6 py-4 text-white/70">{song.artist}</td>
+                  <td className="px-6 py-4 text-white truncate">{song.title}</td>
+                  <td className="px-6 py-4 text-white/70 truncate">{song.artist}</td>
                 </tr>
               ))
             ) : (
