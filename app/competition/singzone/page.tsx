@@ -1,12 +1,13 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef, startTransition } from "react";
 import { useRouter } from "next/navigation";
 import {
   CompetitionHeader,
   CompetitionScoreboard,
   CompetitionRoundResult,
   CompetitionVideoPlayer,
+  CompetitionMicBar,
 } from "@/components/competition";
 
 interface CompetitionPlayer {
@@ -33,29 +34,32 @@ export default function CompetitionSingzonePage() {
   const [gameOver, setGameOver] = useState(false);
   const [ready, setReady] = useState(false);
   const advanceTimerRef = useRef<number | null>(null);
+  const [showMicBar, setShowMicBar] = useState(true);
 
   // Load players from localStorage after mount to avoid hydration mismatch
   useEffect(() => {
     const raw = localStorage.getItem("competition-players");
     if (!raw) {
-      setReady(true);
+      startTransition(() => setReady(true));
       return;
     }
     try {
       const saved = JSON.parse(raw) as CompetitionPlayer[];
-      setPlayers(saved);
-      setScores(
-        saved.map((p) => ({
-          name: p.name,
-          song: `${p.code} · ${p.title}`,
-          score: null,
-          round: null,
-        }))
-      );
+      startTransition(() => {
+        setPlayers(saved);
+        setScores(
+          saved.map((p) => ({
+            name: p.name,
+            song: `${p.code} · ${p.title}`,
+            score: null,
+            round: null,
+          }))
+        );
+      });
     } catch {
       // ignore parse errors
     } finally {
-      setReady(true);
+      startTransition(() => setReady(true));
     }
   }, []);
 
@@ -142,26 +146,46 @@ export default function CompetitionSingzonePage() {
           />
         ) : (
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* Left: Mic / Scoring */}
+            {/* Left: Video + Mic */}
             <div className="lg:col-span-2">
-              <div className="mb-4">
-                <p className="text-sm text-white/50">
-                  Round {currentRound} of {players.length}
-                </p>
-                <h2 className="text-3xl font-bold">
-                  {currentPlayer?.name}
-                  <span className="text-[#FF6B00]"> is up!</span>
-                </h2>
-                <p className="text-white/60 mt-1">
-                  Sing: {currentPlayer?.code} · {currentPlayer?.title} — {currentPlayer?.artist}
-                </p>
+              <div className="mb-4 flex items-start justify-between gap-4">
+                <div className="min-w-0">
+                  <p className="text-sm text-white/50">
+                    Round {currentRound} of {players.length}
+                  </p>
+                  <h2 className="text-3xl font-bold">
+                    {currentPlayer?.name}
+                    <span className="text-[#FF6B00]"> is up!</span>
+                  </h2>
+                  <p className="text-white/60 mt-1">
+                    Sing: {currentPlayer?.code} · {currentPlayer?.title} — {currentPlayer?.artist}
+                  </p>
+                </div>
+
+                <button
+                  onClick={() => setShowMicBar((prev) => !prev)}
+                  className="flex-shrink-0 rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-white/10"
+                  title={showMicBar ? "Hide microphone" : "Show microphone"}
+                >
+                  {showMicBar ? "Hide Mic" : "Show Mic"}
+                </button>
               </div>
 
-              <CompetitionVideoPlayer
-                videoId={currentPlayer.youtubeId}
-                score={scores[currentPlayerIndex]?.score ?? null}
-                onScore={handleScore}
-              />
+              <div className="relative">
+                <div className={showMicBar ? "pr-16" : ""}>
+                  <CompetitionVideoPlayer
+                    videoId={currentPlayer.youtubeId}
+                    score={scores[currentPlayerIndex]?.score ?? null}
+                    onScore={handleScore}
+                  />
+                </div>
+
+                {showMicBar && (
+                  <div className="absolute right-0 top-0 bottom-0 w-16">
+                    <CompetitionMicBar />
+                  </div>
+                )}
+              </div>
             </div>
 
             {/* Right: Leaderboard */}

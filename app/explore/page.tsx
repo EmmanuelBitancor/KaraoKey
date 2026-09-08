@@ -95,7 +95,7 @@ export default function ExplorePage() {
                     if (mode.id === "competition") {
                       router.push("/competition");
                     } else if (mode.id === "roulette") {
-                      // Roulette page not yet built
+                      router.push("/roulette");
                     }
                   }}
                   className="self-start mt-2 px-5 py-2.5 rounded-lg bg-[#FF6B00] text-white font-semibold text-sm hover:bg-[#e55f00] transition disabled:opacity-50 disabled:cursor-not-allowed"

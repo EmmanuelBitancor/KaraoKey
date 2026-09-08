@@ -288,7 +288,7 @@ export default function CompetitionVideoPlayer({
   ]);
 
   return (
-    <div className="relative w-full max-w-4xl mx-auto">
+    <div className="relative w-full">
       <div className="w-full aspect-video rounded-xl overflow-hidden shadow-2xl bg-black">
         <div ref={containerRef} className="w-full h-full" />
       </div>
