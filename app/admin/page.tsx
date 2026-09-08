@@ -9,6 +9,7 @@ import {
   AdminLogin,
   AdminSidebar,
   DashboardCharts,
+  ReviewsList,
   SongList,
   SongModal,
   VideoPreviewModal,
@@ -17,7 +18,8 @@ import { useAuth } from "@/hooks/useAuth";
 import { useSongMutations } from "@/hooks/useSongMutations";
 
 type Song = Database["public"]["Tables"]["songs"]["Row"];
-type TabType = "dashboard" | "songs";
+type Feedback = Database["public"]["Tables"]["feedback"]["Row"];
+type TabType = "dashboard" | "songs" | "reviews";
 
 export default function Admin() {
   // Songs state
@@ -26,6 +28,11 @@ export default function Admin() {
   const [error, setError] = useState<string | null>(null);
   const [letterFilter, setLetterFilter] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
+
+  // Feedback state
+  const [feedback, setFeedback] = useState<Feedback[]>([]);
+  const [feedbackLoading, setFeedbackLoading] = useState(true);
+  const [feedbackError, setFeedbackError] = useState<string | null>(null);
 
   // Tab state
   const [activeTab, setActiveTab] = useState<TabType>("dashboard");
@@ -69,6 +76,22 @@ export default function Admin() {
       setSongs(data || []);
     }
     setLoading(false);
+  }, []);
+
+  // Fetch feedback from Supabase
+  const fetchFeedback = useCallback(async () => {
+    setFeedbackLoading(true);
+    const { data, error } = await supabase
+      .from("feedback")
+      .select("*")
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      setFeedbackError(error.message);
+    } else {
+      setFeedback(data || []);
+    }
+    setFeedbackLoading(false);
   }, []);
 
   // Auth hook
@@ -118,9 +141,10 @@ export default function Admin() {
     if (isAuthenticated && !hasFetchedSongs.current && prevAuthRef.current !== isAuthenticated) {
       hasFetchedSongs.current = true;
       fetchSongs();
+      fetchFeedback();
     }
     prevAuthRef.current = isAuthenticated;
-  }, [isAuthenticated, fetchSongs]);
+  }, [isAuthenticated, fetchSongs, fetchFeedback]);
 
   // Form handlers
   const resetForm = () => {
@@ -202,36 +226,47 @@ export default function Admin() {
 
       <div className={`flex-1 overflow-auto transition-all duration-300 ${sidebarOpen ? 'ml-64' : 'ml-16'}`}>
         <div className="sticky top-0 z-50 bg-[#0D0D0D] border-b border-white/10 px-6 py-4">
-          <h1 className="text-2xl font-bold">
-            {activeTab === "dashboard" ? "Dashboard" : "Song Management"}
-          </h1>
+<h1 className="text-2xl font-bold">
+              {activeTab === "dashboard"
+                ? "Dashboard"
+                : activeTab === "songs"
+                  ? "Song Management"
+                  : "Reviews"}
+            </h1>
         </div>
 
-        <div className="p-6">
-          {activeTab === "dashboard" ? (
-            <DashboardCharts songs={songs} />
-          ) : (
-            <SongList
-              songs={songs}
-              loading={loading}
-              error={error}
-              searchQuery={searchQuery}
-              setSearchQuery={setSearchQuery}
-              letterFilter={letterFilter}
-              setLetterFilter={setLetterFilter}
-              currentPage={currentPage}
-              setCurrentPage={setCurrentPage}
-              itemsPerPage={itemsPerPage}
-              deletingCode={deletingCode}
-              onRefresh={fetchSongs}
-              onAddSong={openAddModal}
-              onPreview={setPreviewSong}
-              onEdit={openEditModal}
-              onDelete={handleDelete}
-              onDismissError={() => setError(null)}
-            />
-          )}
-        </div>
+<div className="p-6">
+            {activeTab === "dashboard" ? (
+              <DashboardCharts songs={songs} feedback={feedback} />
+            ) : activeTab === "songs" ? (
+              <SongList
+                songs={songs}
+                loading={loading}
+                error={error}
+                searchQuery={searchQuery}
+                setSearchQuery={setSearchQuery}
+                letterFilter={letterFilter}
+                setLetterFilter={setLetterFilter}
+                currentPage={currentPage}
+                setCurrentPage={setCurrentPage}
+                itemsPerPage={itemsPerPage}
+                deletingCode={deletingCode}
+                onRefresh={fetchSongs}
+                onAddSong={openAddModal}
+                onPreview={setPreviewSong}
+                onEdit={openEditModal}
+                onDelete={handleDelete}
+                onDismissError={() => setError(null)}
+              />
+            ) : (
+              <ReviewsList
+                feedback={feedback}
+                loading={feedbackLoading}
+                error={feedbackError}
+                onRefresh={fetchFeedback}
+              />
+            )}
+          </div>
       </div>
 
       <SongModal

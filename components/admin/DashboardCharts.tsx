@@ -14,7 +14,10 @@ import {
   LineElement,
   Filler,
 } from "chart.js";
+import type { Database } from "@/lib/database.types";
 import type { Song } from "@/lib/database.types";
+
+type Feedback = Database["public"]["Tables"]["feedback"]["Row"];
 
 ChartJS.register(
   CategoryScale,
@@ -31,9 +34,10 @@ ChartJS.register(
 
 interface DashboardChartsProps {
   songs: Song[];
+  feedback: Feedback[];
 }
 
-export default function DashboardCharts({ songs }: DashboardChartsProps) {
+export default function DashboardCharts({ songs, feedback }: DashboardChartsProps) {
   return (
     <div className="space-y-6">
       {/* Stats Cards */}
@@ -172,7 +176,7 @@ export default function DashboardCharts({ songs }: DashboardChartsProps) {
         </div>
 
         {/* Songs Added Over Time */}
-        <div className="bg-[#1a1a1a] rounded-lg border border-white/10 p-6 lg:col-span-2">
+        <div className="bg-[#1a1a1a] rounded-lg border border-white/10 p-6">
           <h3 className="text-lg font-semibold mb-4">Songs Added Over Time</h3>
           <div className="h-64">
             <Line
@@ -219,6 +223,68 @@ export default function DashboardCharts({ songs }: DashboardChartsProps) {
                 scales: {
                   y: {
                     beginAtZero: true,
+                    ticks: { color: "rgba(255,255,255,0.5)" },
+                    grid: { color: "rgba(255,255,255,0.1)" },
+                  },
+                  x: {
+                    ticks: { color: "rgba(255,255,255,0.5)" },
+                    grid: { display: false },
+                  },
+                },
+              }}
+            />
+          </div>
+        </div>
+
+        {/* Average Rating Over Time */}
+        <div className="bg-[#1a1a1a] rounded-lg border border-white/10 p-6">
+          <h3 className="text-lg font-semibold mb-4">Average Rating Over Time</h3>
+          <div className="h-64">
+            <Line
+              data={{
+                labels: (() => {
+                  const months: string[] = [];
+                  const now = new Date();
+                  for (let i = 5; i >= 0; i--) {
+                    const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
+                    months.push(date.toLocaleDateString("en-US", { month: "short", year: "2-digit" }));
+                  }
+                  return months;
+                })(),
+                datasets: [
+                  {
+                    label: "Average Rating",
+                    data: (() => {
+                      const months: number[] = [];
+                      const now = new Date();
+                      for (let i = 5; i >= 0; i--) {
+                        const targetMonth = new Date(now.getFullYear(), now.getMonth() - i, 1);
+                        const ratings = feedback.filter((f) => f.rating !== null).filter((f) => {
+                          const d = new Date(f.created_at);
+                          return d.getMonth() === targetMonth.getMonth() && d.getFullYear() === targetMonth.getFullYear();
+                        }).map((f) => f.rating!);
+                        const avg = ratings.length > 0 ? ratings.reduce((a, b) => a + b, 0) / ratings.length : 0;
+                        months.push(avg);
+                      }
+                      return months;
+                    })(),
+                    borderColor: "#FF6B00",
+                    backgroundColor: "rgba(255, 107, 0, 0.1)",
+                    fill: true,
+                    tension: 0.4,
+                  },
+                ],
+              }}
+              options={{
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                  legend: { display: false },
+                },
+                scales: {
+                  y: {
+                    beginAtZero: true,
+                    max: 5,
                     ticks: { color: "rgba(255,255,255,0.5)" },
                     grid: { color: "rgba(255,255,255,0.1)" },
                   },

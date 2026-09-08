@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
@@ -14,6 +14,115 @@ export default function Hero() {
   const router = useRouter();
 
   const matchedSong = songs.find((song) => song.code === code);
+
+  const prevLengthRef = useRef(0);
+  const femaleVoiceRef = useRef<SpeechSynthesisVoice | null>(null);
+
+  const getFemaleVoice = useCallback((): SpeechSynthesisVoice | null => {
+    if (!window.speechSynthesis) return null;
+
+    const voices = window.speechSynthesis.getVoices();
+    if (voices.length === 0) return null;
+
+    // Prioritize high-energy female voices
+    const energeticFemaleNames = [
+      "samantha",
+      "victoria",
+      "karen",
+      "moira",
+      "tessa",
+      "veena",
+      "zira",
+      "eva",
+      "lisa",
+      "fiona",
+      "katherine",
+      "kate",
+      "alice",
+      "amelie",
+      "alex",
+      "maria",
+      "laura",
+      "paulina",
+      "iveta",
+      "yu-shuan",
+      "mei-jia",
+      "ting-ting",
+      "hoda",
+      "nora",
+      "henry",
+      "joanna",
+      "salli",
+      "michelle",
+      "carmen",
+      "conchita",
+      "lucia",
+      "esperanza",
+      "krystal",
+      "sabina",
+    ];
+
+    const femaleVoice = voices.find((v) =>
+      energeticFemaleNames.some((name) => v.name.toLowerCase().includes(name))
+    );
+
+    if (femaleVoice) return femaleVoice;
+
+    // Fallback: look for female/woman pattern
+    const fallbackVoice = voices.find(
+      (v) =>
+        v.name.toLowerCase().includes("female") ||
+        v.voiceURI.toLowerCase().includes("female") ||
+        v.name.toLowerCase().includes("woman")
+    );
+
+    return fallbackVoice || voices[0] || null;
+  }, []);
+
+  const speakCode = useCallback((text: string) => {
+    if (!text || !window.speechSynthesis) return;
+
+    const utterance = new SpeechSynthesisUtterance(text);
+
+    // Use female voice if available
+    const femaleVoice = getFemaleVoice();
+    if (femaleVoice) {
+      utterance.voice = femaleVoice;
+    }
+
+    // High-energy settings: faster rate and higher pitch
+    utterance.rate = 2.5;
+    utterance.pitch = 2.5;
+
+    // Only cancel if speech is actually in progress to avoid delay
+    if (window.speechSynthesis.speaking) {
+      window.speechSynthesis.cancel();
+    }
+
+    window.speechSynthesis.speak(utterance);
+  }, [getFemaleVoice]);
+
+  useEffect(() => {
+    if (code && code.length > prevLengthRef.current) {
+      const lastChar = code.slice(-1);
+      speakCode(lastChar);
+    }
+    prevLengthRef.current = code.length;
+  }, [code, speakCode]);
+
+  useEffect(() => {
+    // Pre-load voices and select female voice
+    if (window.speechSynthesis) {
+      const loadVoices = () => {
+        femaleVoiceRef.current = getFemaleVoice();
+      };
+
+      loadVoices();
+
+      // Handle async voice loading (Chrome)
+      window.speechSynthesis.onvoiceschanged = loadVoices;
+    }
+  }, [getFemaleVoice]);
 
   useEffect(() => {
     // Focus the input on mount
@@ -67,6 +176,17 @@ export default function Hero() {
       >
         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6">
           <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.042A8.967 8.967 0 0 0 6 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 0 1 6 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 0 1 6-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0 0 18 18a8.967 8.967 0 0 0-6 2.292m0-14.25v14.25" />
+        </svg>
+      </button>
+
+      {/* Floating Submit Feedback button */}
+      <button
+        onClick={() => router.push("/review")}
+        className="absolute bottom-8 right-28 z-20 rounded-full bg-white/10 p-4 text-white shadow-lg transition hover:bg-white/20"
+        title="Submit Feedback"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M12 20.25c4.97 0 9-3.694 9-8.25s-4.03-8.25-9-8.25S3 7.444 3 12c0 2.104.859 4.023 2.273 5.48.432.447.74 1.04.586 1.641a4.483 4.483 0 0 1-.923 1.785A5.969 5.969 0 0 0 6 21c1.282 0 2.47-.402 3.445-1.087.81.22 1.668.337 2.555.337Z" />
         </svg>
       </button>
 
