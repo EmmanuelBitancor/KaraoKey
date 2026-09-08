@@ -168,27 +168,39 @@ export default function Hero() {
       {/* Black overlay */}
       <div className="absolute inset-0 bg-black/70" />
 
-      {/* Floating Song Book button */}
-      <button
-        onClick={() => router.push("/songbook")}
-        className="absolute bottom-8 right-8 z-20 rounded-full bg-[#FF6B00] p-4 text-white shadow-lg transition hover:bg-[#e55f00]"
-        title="Song Book"
-      >
-        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6">
-          <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.042A8.967 8.967 0 0 0 6 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 0 1 6 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 0 1 6-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0 0 18 18a8.967 8.967 0 0 0-6 2.292m0-14.25v14.25" />
-        </svg>
-      </button>
-
-      {/* Floating Submit Feedback button */}
-      <button
-        onClick={() => router.push("/review")}
-        className="absolute bottom-8 right-28 z-20 rounded-full bg-white/10 p-4 text-white shadow-lg transition hover:bg-white/20"
-        title="Submit Feedback"
-      >
-        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6">
-          <path strokeLinecap="round" strokeLinejoin="round" d="M12 20.25c4.97 0 9-3.694 9-8.25s-4.03-8.25-9-8.25S3 7.444 3 12c0 2.104.859 4.023 2.273 5.48.432.447.74 1.04.586 1.641a4.483 4.483 0 0 1-.923 1.785A5.969 5.969 0 0 0 6 21c1.282 0 2.47-.402 3.445-1.087.81.22 1.668.337 2.555.337Z" />
-        </svg>
-      </button>
+      {/* Floating buttons */}
+      <div className="absolute bottom-8 right-8 z-20 flex items-center gap-4">
+        <button
+          onClick={() => router.push("/review")}
+          className="flex items-center gap-2 rounded-full bg-white/10 px-4 py-3 text-white shadow-lg transition hover:bg-white/20"
+          title="Submit Feedback"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M11.48 2.17l2.47 4.94 5.46.79-3.98 3.88.94 5.47-4.9-2.57-4.89 2.57.94-5.47-3.98-3.88 5.46-.79 2.47-4.94z" />
+          </svg>
+          <span className="text-sm font-semibold">Submit Feedback</span>
+        </button>
+        <button
+          onClick={() => router.push("/explore")}
+          className="flex items-center gap-2 rounded-full bg-white/10 px-4 py-3 text-white shadow-lg transition hover:bg-white/20"
+          title="Explore More"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 21s-7.5-5.2-9.5-10.2a7.5 7.5 0 0 1 14-3.6 7.5 7.5 0 0 1 4 3.6C19.5 15.8 12 21 12 21Zm0-10a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5Z" />
+          </svg>
+          <span className="text-sm font-semibold">Explore More</span>
+        </button>
+        <button
+          onClick={() => router.push("/songbook")}
+          className="flex items-center gap-2 rounded-full bg-[#FF6B00] px-4 py-3 text-white shadow-lg transition hover:bg-[#e55f00]"
+          title="Song Book"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.042A8.967 8.967 0 0 0 6 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 0 1 6 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 0 1 6-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0 0 18 18a8.967 8.967 0 0 0-6 2.292m0-14.25v14.25" />
+          </svg>
+          <span className="text-sm font-semibold">Song Book</span>
+        </button>
+      </div>
 
       {/* Logo and Karaoke code */}
       <div className="relative z-10 flex flex-col items-center justify-center min-h-screen gap-8">
