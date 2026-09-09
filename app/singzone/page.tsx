@@ -9,6 +9,7 @@ import {
   SingzoneQueuePanel,
   SingzoneVideoPlayer,
   QueuePreviewBanner,
+  SingzoneScoring,
 } from "@/components/singzone";
 import { useSongQueue } from "@/hooks/useSongQueue";
 import { useYouTubePlayer } from "@/hooks/useYouTubePlayer";
@@ -86,7 +87,8 @@ function SingzoneContent() {
     fetchYoutubeId();
   }, [code, youtubeIdParam]);
 
-  // YouTube player hook
+  const exitToHomeRef = useRef<(() => void) | null>(null);
+
   const handleVideoEnd = useCallback(() => {
     const currentQueue = queueRef.current;
     if (currentQueue.length > 0) {
@@ -100,10 +102,11 @@ function SingzoneContent() {
       setPlayerVideoId(next.youtubeId);
       queueRef.current = currentQueue.slice(1);
     } else {
-      exitToHome();
+      exitToHomeRef.current?.();
     }
   }, []);
 
+  // YouTube player hook
   const {
     containerRef,
     videoProgress,
@@ -112,10 +115,15 @@ function SingzoneContent() {
     isExiting,
     formatTime,
     exitToHome,
+    play,
   } = useYouTubePlayer({
     videoId: playerVideoId,
     onVideoEnd: handleVideoEnd,
   });
+
+  useEffect(() => {
+    exitToHomeRef.current = exitToHome;
+  }, [exitToHome]);
 
   // Song queue hook
   const {
@@ -148,6 +156,10 @@ function SingzoneContent() {
     }
   }, [queue]);
 
+  const handleScore = useCallback((_score: number) => {
+    // score is handled internally by SingzoneScoring
+  }, []);
+
   return (
     <div
       className={`min-h-screen bg-[#0D0D0D] text-white flex relative transition-opacity duration-500 ${
@@ -169,14 +181,23 @@ function SingzoneContent() {
           videoProgress={videoProgress}
           videoDuration={videoDuration}
           formatTime={formatTime}
+          isPlaying={isPlaying}
+          onPlay={play}
         />
+
+        <div className="w-full max-w-5xl mt-4">
+          <SingzoneScoring isPlaying={isPlaying} onScore={handleScore} />
+        </div>
       </div>
 
       {/* Floating Toggle Button */}
       {!isPanelOpen && (
         <button
           onClick={() => setIsPanelOpen(true)}
-          className="absolute right-0 top-1/2 -translate-y-1/2 bg-[#FF6B00] rounded-l-lg py-4 px-2 shadow-lg hover:bg-[#e55f00] transition z-20"
+          className="absolute right-0 top-1/2 -translate-y-1/2 bg-[#FF6B00] rounded-l-lg py-4 px-2 shadow-lg hover:bg-[#e55f00] transition z-20 tv-card"
+          tabIndex={0}
+          role="button"
+          aria-label="Open queue panel"
         >
           <span className="text-white text-sm rotate-90">«</span>
         </button>

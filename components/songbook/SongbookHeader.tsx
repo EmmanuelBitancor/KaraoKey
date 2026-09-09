@@ -17,7 +17,9 @@ export default function SongbookHeader({ search, onSearchChange }: SongbookHeade
         <div className="flex items-center justify-between mb-4">
           <button
             onClick={() => router.push("/")}
-            className="flex items-center gap-2 text-white/70 hover:text-white transition"
+            className="flex items-center gap-2 text-white/70 hover:text-white transition tv-back-btn"
+            tabIndex={0}
+            role="button"
           >
             <span className="text-xl">←</span>
             <span className="text-sm">Back</span>
@@ -36,7 +38,8 @@ export default function SongbookHeader({ search, onSearchChange }: SongbookHeade
           placeholder="Search song or artist..."
           value={search}
           onChange={(e) => onSearchChange(e.target.value)}
-          className="w-full rounded-lg bg-white/10 px-4 py-3 text-white placeholder-white/50 outline-none focus:ring-2 focus:ring-[#FF6B00]"
+          className="w-full rounded-lg bg-white/10 px-4 py-3 text-white placeholder-white/50"
+          tabIndex={0}
         />
       </div>
     </div>

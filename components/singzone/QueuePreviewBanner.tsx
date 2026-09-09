@@ -23,7 +23,10 @@ export default function QueuePreviewBanner({
   return (
     <div
       onClick={onPlayNext}
-      className="bg-[#1a1a1a] px-4 py-3 border-b border-white/10 cursor-pointer hover:bg-[#1a1a1a]/80 transition"
+      className="bg-[#1a1a1a] px-4 py-3 border-b border-white/10 cursor-pointer hover:bg-[#1a1a1a]/80 transition tv-card"
+      tabIndex={0}
+      role="button"
+      aria-label={`Play next song: ${next.title}`}
     >
       <div className="max-w-5xl mx-auto flex items-center justify-between">
         <div className="flex items-center gap-3 overflow-hidden">
@@ -42,7 +45,10 @@ export default function QueuePreviewBanner({
             e.stopPropagation();
             onOpenPanel();
           }}
-          className="text-white/50 hover:text-white text-sm"
+          className="text-white/50 hover:text-white text-sm tv-card"
+          tabIndex={0}
+          role="button"
+          aria-label="View full queue"
         >
           View All
         </button>

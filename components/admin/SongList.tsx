@@ -105,13 +105,17 @@ export default function SongList({
             <button
               onClick={onRefresh}
               disabled={loading}
-              className="text-white/70 hover:text-white text-sm transition"
+              className="text-white/70 hover:text-white text-sm transition tv-card"
+              tabIndex={0}
+              role="button"
             >
               {loading ? "Loading..." : "Refresh"}
             </button>
             <button
               onClick={onAddSong}
-              className="bg-[#FF6B00] hover:bg-[#e55f00] text-white font-semibold px-4 py-2 rounded-lg transition"
+              className="bg-[#FF6B00] hover:bg-[#e55f00] text-white font-semibold px-4 py-2 rounded-lg transition tv-card"
+              tabIndex={0}
+              role="button"
             >
               + Add Song
             </button>
@@ -125,7 +129,8 @@ export default function SongList({
             placeholder="Search song or artist..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full rounded-lg bg-white/10 px-4 py-2 text-white placeholder-white/50 outline-none focus:ring-2 focus:ring-[#FF6B00]"
+            className="w-full rounded-lg bg-white/10 px-4 py-2 text-white placeholder-white/50"
+            tabIndex={0}
           />
         </div>
 
@@ -135,11 +140,13 @@ export default function SongList({
           <div className="flex items-center gap-1 overflow-x-auto pb-1">
             <button
               onClick={() => setLetterFilter(null)}
-              className={`flex-shrink-0 px-2 py-1 text-xs font-semibold rounded transition ${
+              className={`flex-shrink-0 px-2 py-1 text-xs font-semibold rounded transition tv-card ${
                 letterFilter === null
                   ? "bg-[#FF6B00] text-white"
                   : "bg-white/10 text-white/70 hover:bg-white/20"
               }`}
+              tabIndex={0}
+              role="button"
             >
               All
             </button>
@@ -147,11 +154,13 @@ export default function SongList({
               <button
                 key={letter}
                 onClick={() => setLetterFilter(letter)}
-                className={`flex-shrink-0 w-7 h-7 text-xs font-semibold rounded transition flex items-center justify-center ${
+                className={`flex-shrink-0 w-7 h-7 text-xs font-semibold rounded transition flex items-center justify-center tv-card ${
                   letterFilter === letter
                     ? "bg-[#FF6B00] text-white"
                     : "bg-white/10 text-white/70 hover:bg-white/20"
                 }`}
+                tabIndex={0}
+                role="button"
               >
                 {letter}
               </button>
@@ -183,7 +192,7 @@ export default function SongList({
             </thead>
             <tbody className="divide-y divide-white/10">
               {paginatedSongs.map((song) => (
-                <tr key={song.code} className="hover:bg-white/5">
+                <tr key={song.code} className="hover:bg-white/5 tv-card" tabIndex={0} role="row">
                   <td className="px-4 py-3 text-[#FF6B00] font-bold">
                     {song.code}
                   </td>
@@ -195,20 +204,26 @@ export default function SongList({
                   <td className="px-4 py-3 text-right">
                     <button
                       onClick={() => onPreview(song)}
-                      className="text-green-400/70 hover:text-green-500 mr-3 text-sm transition"
+                      className="text-green-400/70 hover:text-green-500 mr-3 text-sm transition tv-card"
+                      tabIndex={0}
+                      role="button"
                     >
                       Preview
                     </button>
                     <button
                       onClick={() => onEdit(song)}
-                      className="text-blue-400/70 hover:text-blue-500 mr-3 text-sm transition"
+                      className="text-blue-400/70 hover:text-blue-500 mr-3 text-sm transition tv-card"
+                      tabIndex={0}
+                      role="button"
                     >
                       Edit
                     </button>
                     <button
                       onClick={() => onDelete(song.code)}
                       disabled={deletingCode === song.code}
-                      className="text-red-400/70 hover:text-red-500 disabled:opacity-50 text-sm transition"
+                      className="text-red-400/70 hover:text-red-500 disabled:opacity-50 text-sm transition tv-card"
+                      tabIndex={0}
+                      role="button"
                     >
                       {deletingCode === song.code ? "..." : "Delete"}
                     </button>
@@ -228,7 +243,9 @@ export default function SongList({
                         <button
                           onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
                           disabled={currentPage === 1}
-                          className="px-3 py-1 bg-white/10 hover:bg-white/20 disabled:opacity-50 disabled:cursor-not-allowed text-white/70 hover:text-white rounded transition"
+                          className="px-3 py-1 bg-white/10 hover:bg-white/20 disabled:opacity-50 disabled:cursor-not-allowed text-white/70 hover:text-white rounded transition tv-card"
+                          tabIndex={0}
+                          role="button"
                         >
                           Prev
                         </button>
@@ -238,7 +255,9 @@ export default function SongList({
                         <button
                           onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
                           disabled={currentPage === totalPages}
-                          className="px-3 py-1 bg-white/10 hover:bg-white/20 disabled:opacity-50 disabled:cursor-not-allowed text-white/70 hover:text-white rounded transition"
+                          className="px-3 py-1 bg-white/10 hover:bg-white/20 disabled:opacity-50 disabled:cursor-not-allowed text-white/70 hover:text-white rounded transition tv-card"
+                          tabIndex={0}
+                          role="button"
                         >
                           Next
                         </button>

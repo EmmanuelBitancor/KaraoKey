@@ -87,7 +87,9 @@ export default function CompetitionMicPanel({
         <button
           onClick={startScoring}
           disabled={isScoring}
-          className="mt-5 w-full max-w-xs rounded-full bg-[#FF6B00] px-6 py-3 text-sm font-bold text-white shadow-lg transition hover:bg-[#e55f00] disabled:opacity-50 disabled:cursor-not-allowed"
+          className="mt-5 w-full max-w-xs rounded-full bg-[#FF6B00] px-6 py-3 text-sm font-bold text-white shadow-lg transition hover:bg-[#e55f00] disabled:opacity-50 disabled:cursor-not-allowed tv-card"
+          tabIndex={0}
+          role="button"
         >
           {isScoring ? "Scoring..." : "Score My Singing"}
         </button>

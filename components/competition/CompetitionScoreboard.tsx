@@ -29,16 +29,18 @@ export default function CompetitionScoreboard({
           const isHighlighted =
             highlightIndex !== null && entry.originalIndex === highlightIndex;
           return (
-            <div
-              key={entry.name + entry.round}
-              className={`flex items-center gap-3 rounded-lg px-3 py-2.5 transition ${
-                isHighlighted
-                  ? "bg-[#FF6B00]/20 border border-[#FF6B00]/40"
-                  : entry.score !== null
-                  ? "bg-white/5"
-                  : "bg-white/[0.02]"
-              }`}
-            >
+<div
+                key={entry.name + entry.round}
+                className={`flex items-center gap-3 rounded-lg px-3 py-2.5 transition tv-row ${
+                  isHighlighted
+                    ? "bg-[#FF6B00]/20 border border-[#FF6B00]/40"
+                    : entry.score !== null
+                    ? "bg-white/5"
+                    : "bg-white/[0.02]"
+                }`}
+                tabIndex={0}
+                role="row"
+              >
               <div
                 className={`flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full text-xs font-bold ${
                   rank === 0

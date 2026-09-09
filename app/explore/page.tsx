@@ -50,7 +50,7 @@ export default function ExplorePage() {
   return (
     <div className="min-h-screen bg-[#0D0D0D] text-white">
       <div className="mx-auto max-w-6xl px-4 py-16">
-        <Link href="/" className="text-[#FF6B00] hover:underline text-sm mb-6 inline-block">
+        <Link href="/" className="text-[#FF6B00] hover:underline text-sm mb-6 inline-block tv-card">
           &larr; Back to home
         </Link>
 
@@ -67,12 +67,15 @@ export default function ExplorePage() {
           {modes.map((mode) => (
             <div
               key={mode.id}
-              className={`relative flex flex-col gap-4 rounded-2xl border p-6 transition-all duration-200 cursor-pointer ${
+              className={`relative flex flex-col gap-4 rounded-2xl border p-6 transition-all duration-200 cursor-pointer tv-card ${
                 selectedMode === mode.id
                   ? "border-[#FF6B00] bg-[#FF6B00]/10 shadow-lg shadow-[#FF6B00]/20"
                   : "border-white/10 bg-[#1a1a1a] hover:border-white/30 hover:bg-[#222]"
               }`}
               onClick={() => setSelectedMode(mode.id)}
+              tabIndex={0}
+              role="button"
+              aria-label={mode.title}
             >
               <div className="flex items-center justify-between">
                 <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-[#FF6B00]/15 text-[#FF6B00]">
@@ -98,7 +101,9 @@ export default function ExplorePage() {
                       router.push("/roulette");
                     }
                   }}
-                  className="self-start mt-2 px-5 py-2.5 rounded-lg bg-[#FF6B00] text-white font-semibold text-sm hover:bg-[#e55f00] transition disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="self-start mt-2 px-5 py-2.5 rounded-lg bg-[#FF6B00] text-white font-semibold text-sm hover:bg-[#e55f00] transition disabled:opacity-50 disabled:cursor-not-allowed tv-card"
+                  tabIndex={0}
+                  role="button"
                 >
                   Play Now
                 </button>

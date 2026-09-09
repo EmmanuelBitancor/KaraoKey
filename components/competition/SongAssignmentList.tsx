@@ -34,7 +34,8 @@ export default function SongAssignmentList({
           placeholder="Search songs by title, artist, or code..."
           value={searchQuery}
           onChange={(e) => onSearchChange(e.target.value)}
-          className="w-full rounded-lg bg-white/5 border border-white/10 px-4 py-3 text-white placeholder-white/40 outline-none focus:border-[#FF6B00] transition"
+          className="w-full rounded-lg bg-white/5 border border-white/10 px-4 py-3 text-white placeholder-white/40"
+          tabIndex={0}
         />
         {searchQuery && (
           <div className="mt-1 w-full max-h-72 overflow-y-auto rounded-lg bg-[#2a2a2a] border border-white/10 shadow-xl">
@@ -42,7 +43,9 @@ export default function SongAssignmentList({
               filteredSongs.map((song) => (
                 <div
                   key={song.code}
-                  className="flex items-center gap-3 px-4 py-3 hover:bg-[#FF6B00]/20 transition border-b border-white/5 last:border-b-0"
+                  className="flex items-center gap-3 px-4 py-3 hover:bg-[#FF6B00]/20 transition border-b border-white/5 last:border-b-0 tv-card"
+                  tabIndex={0}
+                  role="button"
                 >
                   <div className="flex-1 min-w-0">
                     <p className="text-[#FF6B00] font-bold text-sm">{song.code}</p>
@@ -55,10 +58,12 @@ export default function SongAssignmentList({
                         key={p.id}
                         onClick={() => onAssign(p.id, song)}
                         disabled={!p.name.trim()}
-                        className="text-[10px] bg-white/10 hover:bg-[#FF6B00] disabled:opacity-40 disabled:cursor-not-allowed text-white font-semibold px-2 py-1 rounded transition"
+                        className="text-[10px] bg-white/10 hover:bg-[#FF6B00] disabled:opacity-40 disabled:cursor-not-allowed text-white font-semibold px-2 py-1 rounded transition tv-card"
+                        tabIndex={0}
+                        role="button"
                         title={`Assign to ${p.name || "unnamed player"}`}
                       >
-                        → {p.name || "?"}
+                        &rarr; {p.name || "?"}
                       </button>
                     ))}
                   </div>
@@ -66,7 +71,7 @@ export default function SongAssignmentList({
               ))
             ) : (
               <p className="px-4 py-6 text-white/40 text-sm text-center">
-                No songs found for "{searchQuery}"
+                No songs found for &quot;{searchQuery}&quot;
               </p>
             )}
           </div>

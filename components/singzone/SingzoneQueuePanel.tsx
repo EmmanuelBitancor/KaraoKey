@@ -62,7 +62,10 @@ export default function SingzoneQueuePanel({
         </div>
         <button
           onClick={onTogglePanel}
-          className="text-white/50 hover:text-white transition"
+          className="text-white/50 hover:text-white transition tv-card"
+          tabIndex={0}
+          role="button"
+          aria-label={isPanelOpen ? "Close panel" : "Open panel"}
         >
           <span className="text-xl">{isPanelOpen ? "»" : "«"}</span>
         </button>
@@ -75,11 +78,13 @@ export default function SingzoneQueuePanel({
         <div className="flex items-center gap-1 overflow-x-auto pb-1">
           <button
             onClick={() => onLetterFilterChange(null)}
-            className={`flex-shrink-0 px-2 py-1 text-xs font-semibold rounded transition ${
+            className={`flex-shrink-0 px-2 py-1 text-xs font-semibold rounded transition tv-card ${
               letterFilter === null
                 ? "bg-[#FF6B00] text-white"
                 : "bg-white/10 text-white/70 hover:bg-white/20"
             }`}
+            tabIndex={0}
+            role="button"
           >
             All
           </button>
@@ -87,11 +92,13 @@ export default function SingzoneQueuePanel({
             <button
               key={letter}
               onClick={() => onLetterFilterChange(letter)}
-              className={`flex-shrink-0 w-6 h-6 text-xs font-semibold rounded transition flex items-center justify-center ${
+              className={`flex-shrink-0 w-6 h-6 text-xs font-semibold rounded transition flex items-center justify-center tv-card ${
                 letterFilter === letter
                   ? "bg-[#FF6B00] text-white"
                   : "bg-white/10 text-white/70 hover:bg-white/20"
               }`}
+              tabIndex={0}
+              role="button"
             >
               {letter}
             </button>
@@ -103,7 +110,8 @@ export default function SingzoneQueuePanel({
           placeholder="Search code, title, or artist..."
           value={searchQuery}
           onChange={(e) => onSearchChange(e.target.value)}
-          className="w-full rounded-lg bg-white/10 px-4 py-3 text-white placeholder-white/50 outline-none focus:ring-2 focus:ring-[#FF6B00]"
+          className="w-full rounded-lg bg-white/10 px-4 py-3 text-white placeholder-white/50"
+          tabIndex={0}
         />
 
         {/* Search Results */}
@@ -113,7 +121,9 @@ export default function SingzoneQueuePanel({
               searchResults.map((song) => (
                 <div
                   key={song.code}
-                  className="flex items-center gap-2 px-4 py-3 hover:bg-[#FF6B00]/20 transition border-b border-white/5 last:border-b-0"
+                  className="flex items-center gap-2 px-4 py-3 hover:bg-[#FF6B00]/20 transition border-b border-white/5 last:border-b-0 tv-card"
+                  tabIndex={0}
+                  role="button"
                 >
                   <div className="flex-1 min-w-0">
                     <p className="text-[#FF6B00] font-bold text-sm">{song.code}</p>
@@ -122,7 +132,9 @@ export default function SingzoneQueuePanel({
                   </div>
                   <button
                     onClick={() => onAddToQueue(song)}
-                    className="flex-shrink-0 bg-[#FF6B00] hover:bg-[#e55f00] text-white text-xs font-semibold px-3 py-1.5 rounded transition"
+                    className="flex-shrink-0 bg-[#FF6B00] hover:bg-[#e55f00] text-white text-xs font-semibold px-3 py-1.5 rounded transition tv-card"
+                    tabIndex={0}
+                    role="button"
                   >
                     Reserve
                   </button>
@@ -148,11 +160,15 @@ export default function SingzoneQueuePanel({
             {queue.map((song, index) => (
               <div
                 key={`${song.code}-${index}`}
-                className="bg-white/5 rounded px-2 py-1.5 relative group flex items-center gap-2"
+                className="bg-white/5 rounded px-2 py-1.5 relative group flex items-center gap-2 tv-queue-item"
+                tabIndex={0}
+                role="button"
               >
                 <button
                   onClick={() => onRemoveFromQueue(index)}
-                  className="text-white/30 hover:text-red-500 transition text-xs"
+                  className="text-white/30 hover:text-red-500 transition text-xs tv-card"
+                  tabIndex={0}
+                  role="button"
                 >
                   ×
                 </button>
@@ -167,7 +183,9 @@ export default function SingzoneQueuePanel({
                 </div>
                 <button
                   onClick={() => onPlayNow(index)}
-                  className="flex-shrink-0 text-[10px] bg-[#FF6B00] hover:bg-[#e55f00] text-white font-semibold px-2 py-1 rounded transition opacity-0 group-hover:opacity-100"
+                  className="flex-shrink-0 text-[10px] bg-[#FF6B00] hover:bg-[#e55f00] text-white font-semibold px-2 py-1 rounded transition opacity-0 group-hover:opacity-100 tv-card"
+                  tabIndex={0}
+                  role="button"
                 >
                   Play Now
                 </button>

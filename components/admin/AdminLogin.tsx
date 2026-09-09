@@ -54,12 +54,16 @@ export default function AdminLogin({
               onChange={(e) => {
                 setPasswordInput(e.target.value);
               }}
-              className="w-full rounded-lg bg-white/10 px-4 py-3 pr-12 text-white placeholder-white/50 outline-none focus:ring-2 focus:ring-[#FF6B00]"
+              className="w-full rounded-lg bg-white/10 px-4 py-3 pr-12 text-white placeholder-white/50"
+              tabIndex={0}
             />
             <button
               type="button"
               onClick={() => setShowPassword(!showPassword)}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-white/50 hover:text-white transition"
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-white/50 hover:text-white transition tv-card"
+              tabIndex={0}
+              role="button"
+              aria-label={showPassword ? "Hide password" : "Show password"}
             >
               {showPassword ? (
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
@@ -81,7 +85,9 @@ export default function AdminLogin({
 
           <button
             type="submit"
-            className="w-full bg-[#FF6B00] hover:bg-[#e55f00] text-white font-semibold py-3 rounded-lg transition"
+            className="w-full bg-[#FF6B00] hover:bg-[#e55f00] text-white font-semibold py-3 rounded-lg transition tv-card"
+            tabIndex={0}
+            role="button"
           >
             Login
           </button>
