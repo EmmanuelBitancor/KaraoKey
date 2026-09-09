@@ -16,6 +16,12 @@ export default function CompetitionMicBar() {
 
     const startMic = async () => {
       try {
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+          setStatus("error");
+          setError("Microphone unavailable in this browser");
+          return;
+        }
+
         const stream = await navigator.mediaDevices.getUserMedia({
           audio: {
             echoCancellation: true,

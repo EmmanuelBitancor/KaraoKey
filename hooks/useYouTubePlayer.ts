@@ -53,6 +53,7 @@ export function useYouTubePlayer({ videoId, onVideoEnd }: UseYouTubePlayerOption
   const [videoDuration, setVideoDuration] = useState(240);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isExiting, setIsExiting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const formatTime = (seconds: number) =>
     `${Math.floor(seconds / 60)}:${String(Math.floor(seconds % 60)).padStart(2, "0")}`;
@@ -89,6 +90,20 @@ export function useYouTubePlayer({ videoId, onVideoEnd }: UseYouTubePlayerOption
                   onVideoEnd?.();
                 }
               }
+            },
+            onError: (event: { data: number }) => {
+              let message = "Video playback error.";
+              if (event.data === 101 || event.data === 150) {
+                message = "This video is blocked from being played here.";
+              } else if (event.data === 100) {
+                message = "This video was removed or is unavailable.";
+              } else if (event.data === 2) {
+                message = "Invalid video ID.";
+              } else if (event.data === 5) {
+                message = "HTML5 player error.";
+              }
+              setError(message);
+              setIsPlaying(false);
             },
             onReady: () => {
               if (playerRef.current) {
@@ -162,5 +177,6 @@ export function useYouTubePlayer({ videoId, onVideoEnd }: UseYouTubePlayerOption
     formatTime,
     exitToHome,
     play,
+    error,
   };
 }

@@ -47,7 +47,7 @@ function SingzoneContent() {
   const [playerVideoId, setPlayerVideoId] = useState<string | null>(
     youtubeIdParam || null
   );
-  const [isPanelOpen, setIsPanelOpen] = useState(true);
+  const [isPanelOpen, setIsPanelOpen] = useState(false);
   const queueRef = useRef<QueuedSong[]>([]);
 
   // Fetch songs from Supabase on mount
@@ -116,6 +116,7 @@ function SingzoneContent() {
     formatTime,
     exitToHome,
     play,
+    error,
   } = useYouTubePlayer({
     videoId: playerVideoId,
     onVideoEnd: handleVideoEnd,
@@ -161,13 +162,13 @@ function SingzoneContent() {
   }, []);
 
   return (
-    <div
-      className={`min-h-screen bg-[#0D0D0D] text-white flex relative transition-opacity duration-500 ${
+<div className={`min-h-screen bg-[#0D0D0D] text-white flex flex-col md:flex-row relative transition-opacity duration-500 ${
         isExiting ? "opacity-0" : "opacity-100"
-      }`}
-    >
+      }`}>
       {/* Main Content */}
-      <div className="flex-1 flex flex-col">
+      <div className={`flex-1 flex flex-col min-w-0 transition-all duration-300 ${
+        isPanelOpen ? "md:blur-sm opacity-50 pointer-events-none md:pointer-events-auto" : ""
+      }`}>
         <SingzoneHeader />
 
         <QueuePreviewBanner
@@ -183,9 +184,10 @@ function SingzoneContent() {
           formatTime={formatTime}
           isPlaying={isPlaying}
           onPlay={play}
+          error={error}
         />
 
-        <div className="w-full max-w-5xl mt-4">
+        <div className="w-full max-w-5xl mt-4 px-4">
           <SingzoneScoring isPlaying={isPlaying} onScore={handleScore} />
         </div>
       </div>
@@ -194,7 +196,7 @@ function SingzoneContent() {
       {!isPanelOpen && (
         <button
           onClick={() => setIsPanelOpen(true)}
-          className="absolute right-0 top-1/2 -translate-y-1/2 bg-[#FF6B00] rounded-l-lg py-4 px-2 shadow-lg hover:bg-[#e55f00] transition z-20 tv-card"
+          className="absolute right-0 top-1/2 -translate-y-1/2 bg-[#FF6B00] rounded-l-lg py-4 px-2 shadow-lg hover:bg-[#e55f00] transition z-20 tv-card md:block hidden"
           tabIndex={0}
           role="button"
           aria-label="Open queue panel"
@@ -203,19 +205,67 @@ function SingzoneContent() {
         </button>
       )}
 
-      <SingzoneQueuePanel
-        isPanelOpen={isPanelOpen}
-        queue={queue}
-        searchQuery={searchQuery}
-        letterFilter={letterFilter}
-        songs={songs}
-        onTogglePanel={() => setIsPanelOpen(!isPanelOpen)}
-        onSearchChange={setSearchQuery}
-        onLetterFilterChange={setLetterFilter}
-        onAddToQueue={addToQueue}
-        onRemoveFromQueue={removeFromQueue}
-        onPlayNow={playNow}
-      />
+      {/* Mobile queue toggle */}
+      <button
+        onClick={() => setIsPanelOpen(!isPanelOpen)}
+        className="md:hidden fixed bottom-4 right-4 bg-[#FF6B00] text-white p-3 rounded-full shadow-lg z-30 tv-card"
+        tabIndex={0}
+        role="button"
+        aria-label="Toggle queue"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
+        </svg>
+      </button>
+
+      {/* Queue Panel - sidebar on desktop, overlay on mobile */}
+      <div
+        className={`
+          fixed inset-0 z-20 md:relative md:z-auto
+          flex flex-col bg-[#1a1a1a] md:bg-transparent
+          transition-all duration-300 ease-in-out
+          ${isPanelOpen ? "translate-x-0" : "translate-x-full md:translate-x-0 md:w-0 md:border-0 md:overflow-hidden"}
+          md:border-l md:border-white/10
+          w-full md:w-80
+        `}
+      >
+        {/* Mobile close button */}
+        <button
+          onClick={() => setIsPanelOpen(false)}
+          className="md:hidden absolute top-4 right-4 text-white/50 hover:text-white transition tv-card z-10"
+          tabIndex={0}
+          role="button"
+          aria-label="Close panel"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
+          </svg>
+        </button>
+
+        {/* Backdrop for mobile */}
+        {isPanelOpen && (
+          <div
+            className="md:hidden fixed inset-0 bg-black/50 z-10"
+            onClick={() => setIsPanelOpen(false)}
+          />
+        )}
+
+        <div className="flex-1 overflow-y-auto relative z-20">
+          <SingzoneQueuePanel
+            isPanelOpen={isPanelOpen}
+            queue={queue}
+            searchQuery={searchQuery}
+            letterFilter={letterFilter}
+            songs={songs}
+            onTogglePanel={() => setIsPanelOpen(!isPanelOpen)}
+            onSearchChange={setSearchQuery}
+            onLetterFilterChange={setLetterFilter}
+            onAddToQueue={addToQueue}
+            onRemoveFromQueue={removeFromQueue}
+            onPlayNow={playNow}
+          />
+        </div>
+      </div>
     </div>
   );
 }

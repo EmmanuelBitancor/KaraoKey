@@ -176,3 +176,27 @@ video:focus-visible {
     box-shadow: 0 0 0 6px rgba(255, 107, 0, 0.7) !important;
   }
 }
+
+/* ========================================
+   Mobile landscape responsiveness
+   ======================================== */
+
+@media (max-width: 768px) and (orientation: landscape) {
+  .fixed.bottom-4.right-4 {
+    bottom: 8px;
+    right: 8px;
+  }
+
+  [class*="px-4"], [class*="py-3"] {
+    padding-left: 0.75rem;
+    padding-right: 0.75rem;
+    padding-top: 0.5rem;
+    padding-bottom: 0.5rem;
+  }
+}
+
+@media (max-width: 640px) {
+  .max-w-5xl {
+    max-width: 100%;
+  }
+}

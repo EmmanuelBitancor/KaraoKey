@@ -43,6 +43,7 @@ export default function SingzoneScoring({ isPlaying, onScore }: { isPlaying: boo
   const [error, setError] = useState<string | null>(null);
   const [micAllowed, setMicAllowed] = useState<boolean | null>(null);
   const [isRecording, setIsRecording] = useState(false);
+  const [started, setStarted] = useState(false);
   const isRecordingRef = useRef(false);
   const scoredRef = useRef(false);
   const pitchDataRef = useRef<number[]>([]);
@@ -52,6 +53,7 @@ export default function SingzoneScoring({ isPlaying, onScore }: { isPlaying: boo
   const mediaStreamRef = useRef<MediaStream | null>(null);
   const animationFrameRef = useRef<number | null>(null);
   const scoreTimerRef = useRef<number | null>(null);
+  const isMobile = typeof window !== "undefined" && /Android|iPhone|iPad|iPod|webOS/i.test(navigator.userAgent);
 
   const stopMicrophone = useCallback(() => {
     isRecordingRef.current = false;
@@ -120,6 +122,12 @@ export default function SingzoneScoring({ isPlaying, onScore }: { isPlaying: boo
     if (scoredRef.current) return;
 
     try {
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        setError("Microphone unavailable in this browser");
+        setMicAllowed(false);
+        return;
+      }
+
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       mediaStreamRef.current = stream;
       setMicAllowed(true);
@@ -178,6 +186,10 @@ export default function SingzoneScoring({ isPlaying, onScore }: { isPlaying: boo
 
     let cancelled = false;
     async function maybeStart() {
+      if (!started || isMobile) {
+        return;
+      }
+
       if (cancelled) return;
       await startRecording();
     }
@@ -189,7 +201,7 @@ export default function SingzoneScoring({ isPlaying, onScore }: { isPlaying: boo
       stopMicrophone();
       setIsRecording(false);
     };
-  }, [isPlaying, stopMicrophone, startRecording, scheduleScore]);
+  }, [isPlaying, started, isMobile, stopMicrophone, startRecording, scheduleScore]);
 
   useEffect(() => {
     return () => {
@@ -197,7 +209,12 @@ export default function SingzoneScoring({ isPlaying, onScore }: { isPlaying: boo
     };
   }, [stopMicrophone]);
 
-  if (!isPlaying && score === null && !error && !isRecording) {
+  const handleStart = async () => {
+    setStarted(true);
+    await startRecording();
+  };
+
+  if (!isPlaying && !isMobile && score === null && !error && !isRecording) {
     return null;
   }
 
@@ -210,6 +227,17 @@ export default function SingzoneScoring({ isPlaying, onScore }: { isPlaying: boo
       )}
 
       {error && <p className="text-red-400 text-xs">{error}</p>}
+
+      {isPlaying && isMobile && !isRecording && (
+        <button
+          onClick={handleStart}
+          className="rounded-full bg-[#FF6B00] px-6 py-3 text-sm font-bold text-white shadow-lg transition hover:bg-[#e55f00] tv-card"
+          tabIndex={0}
+          role="button"
+        >
+          Start Scoring
+        </button>
+      )}
 
       {score !== null && (
         <div className="text-center">

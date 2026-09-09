@@ -237,21 +237,21 @@ export default function RoulettePage() {
             )}
           </div>
         ) : (
-          <div className="flex flex-col gap-6">
-            <div className="mb-4 flex items-start justify-between gap-4">
+          <div className="flex flex-col gap-4 md:gap-6">
+            <div className="mb-3 md:mb-4 flex items-start justify-between gap-3">
               <div className="min-w-0">
-                <p className="text-sm text-white/50">Roulette Mode</p>
-                <h2 className="text-3xl font-bold">
+                <p className="text-xs md:text-sm text-white/50">Roulette Mode</p>
+                <h2 className="text-xl md:text-3xl font-bold">
                   {selectedSong.title}
                   <span className="text-[#FF6B00]"> — {selectedSong.artist}</span>
                 </h2>
-                <p className="text-white/60 mt-1">{selectedSong.code}</p>
+                <p className="text-white/60 mt-1 text-xs md:text-sm">{selectedSong.code}</p>
               </div>
 
               <div className="flex items-center gap-2 flex-shrink-0">
                 <button
                   onClick={() => setShowMic((prev) => !prev)}
-                  className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-white/10 tv-card"
+                  className="rounded-full border border-white/10 bg-white/5 px-2 py-1 md:px-3 md:py-1.5 text-xs font-semibold text-white transition hover:bg-white/10 tv-card"
                   tabIndex={0}
                   role="button"
                 >
@@ -259,7 +259,7 @@ export default function RoulettePage() {
                 </button>
                 <button
                   onClick={resetRoulette}
-                  className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-white/10 tv-card"
+                  className="rounded-full border border-white/10 bg-white/5 px-2 py-1 md:px-3 md:py-1.5 text-xs font-semibold text-white transition hover:bg-white/10 tv-card"
                   tabIndex={0}
                   role="button"
                 >
@@ -269,7 +269,7 @@ export default function RoulettePage() {
             </div>
 
             <div className="relative">
-              <div className={showMic ? "pr-16" : ""}>
+              <div className={showMic ? "pr-12 md:pr-16" : ""}>
                 <CompetitionVideoPlayer
                   videoId={selectedSong.youtube_id}
                   score={score}
@@ -278,16 +278,16 @@ export default function RoulettePage() {
               </div>
 
               {showMic && (
-                <div className="absolute right-0 top-0 bottom-0 w-16">
+                <div className="absolute right-0 top-0 bottom-0 w-12 md:w-16">
                   <CompetitionMicBar />
                 </div>
               )}
             </div>
 
-            <div className="mt-4 flex gap-3 justify-center">
+            <div className="mt-3 md:mt-4 flex gap-3 justify-center">
               <button
                 onClick={resetRoulette}
-                className="px-6 py-3 rounded-full bg-[#FF6B00] text-white font-bold text-sm shadow-lg transition hover:bg-[#e55f00] tv-card"
+                className="px-4 py-2 md:px-6 md:py-3 rounded-full bg-[#FF6B00] text-white font-bold text-sm shadow-lg transition hover:bg-[#e55f00] tv-card"
                 tabIndex={0}
                 role="button"
               >

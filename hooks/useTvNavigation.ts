@@ -23,6 +23,26 @@ interface TvNavigationResult {
   refresh: () => void;
 }
 
+function isElementTopMost(element: FocusableElement): boolean {
+  const rect = element.getBoundingClientRect();
+  if (rect.width <= 0 || rect.height <= 0) return false;
+
+  const centerX = rect.left + rect.width / 2;
+  const centerY = rect.top + rect.height / 2;
+  const topElement = document.elementFromPoint(centerX, centerY) as HTMLElement | null;
+
+  if (!topElement) return false;
+
+  // Check if the element or one of its ancestors is the topmost element
+  let current: HTMLElement | null = topElement;
+  while (current) {
+    if (current === element) return true;
+    current = current.parentElement;
+  }
+
+  return false;
+}
+
 export function useTvNavigation(options: TvNavigationOptions = {}): TvNavigationResult {
   const {
     initialFocus,
@@ -60,7 +80,8 @@ export function useTvNavigation(options: TvNavigationOptions = {}): TvNavigation
         const htmlEl = el as FocusableElement;
         const rect = htmlEl.getBoundingClientRect();
         const visible = rect.width > 0 && rect.height > 0;
-        if (visible) {
+        const topMost = visible ? isElementTopMost(htmlEl) : false;
+        if (visible && topMost) {
           elements.push(htmlEl);
         }
       });

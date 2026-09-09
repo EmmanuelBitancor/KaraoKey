@@ -8,10 +8,11 @@ interface SingzoneVideoPlayerProps {
   formatTime: (seconds: number) => string;
   isPlaying?: boolean;
   onPlay?: () => void;
+  error?: string | null;
 }
 
 const SingzoneVideoPlayer = forwardRef<HTMLDivElement, SingzoneVideoPlayerProps>(
-  ({ videoProgress, videoDuration, formatTime, isPlaying, onPlay }, ref) => {
+  ({ videoProgress, videoDuration, formatTime, isPlaying, onPlay, error }, ref) => {
     const progressPercent = videoDuration > 0 ? (videoProgress / videoDuration) * 100 : 0;
     const [showPlayOverlay, setShowPlayOverlay] = useState(false);
 
@@ -26,10 +27,10 @@ const SingzoneVideoPlayer = forwardRef<HTMLDivElement, SingzoneVideoPlayerProps>
     }, [isPlaying]);
 
     return (
-      <div className="flex-1 flex flex-col items-center justify-center p-4">
+      <div className="flex-1 flex flex-col items-center justify-center p-2 md:p-4">
         <div className="w-full max-w-5xl aspect-video bg-black rounded-lg overflow-hidden shadow-2xl relative">
           <div ref={ref} className="w-full h-full" />
-          {showPlayOverlay && (
+          {showPlayOverlay && !error && (
             <button
               onClick={onPlay}
               className="absolute inset-0 flex items-center justify-center bg-black/40"
@@ -37,6 +38,14 @@ const SingzoneVideoPlayer = forwardRef<HTMLDivElement, SingzoneVideoPlayerProps>
             >
               <span className="text-white text-4xl">▶</span>
             </button>
+          )}
+          {error && (
+            <div className="absolute inset-0 flex items-center justify-center bg-black/80">
+              <div className="text-center px-4">
+                <p className="text-red-400 font-semibold text-sm md:text-base">Playback Unavailable</p>
+                <p className="text-white/70 text-xs md:text-sm mt-2 max-w-md">{error}</p>
+              </div>
+            </div>
           )}
         </div>
         {/* Progress Bar */}

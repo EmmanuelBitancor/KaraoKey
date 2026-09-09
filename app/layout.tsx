@@ -17,7 +17,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="dark">
+    <html lang="en" className="dark" data-scroll-behavior="smooth">
       <body className="min-h-screen antialiased bg-[#0D0D0D] text-white">
         <TvNavigationProvider>{children}</TvNavigationProvider>
         <style dangerouslySetInnerHTML={{__html: `
