@@ -74,6 +74,7 @@ export function useYouTubePlayer({ videoId, onVideoEnd }: UseYouTubePlayerOption
             autoplay: 1,
             mute: 0,
             loop: 0,
+            playsinline: 1,
           },
           events: {
             onStateChange: (event: { data: number }) => {
@@ -93,6 +94,7 @@ export function useYouTubePlayer({ videoId, onVideoEnd }: UseYouTubePlayerOption
               if (playerRef.current) {
                 const duration = playerRef.current.getDuration();
                 if (duration) setVideoDuration(duration);
+                playerRef.current.playVideo();
               }
             },
           },
@@ -145,6 +147,12 @@ export function useYouTubePlayer({ videoId, onVideoEnd }: UseYouTubePlayerOption
     }, 500);
   }, [router]);
 
+  const play = useCallback(() => {
+    if (playerRef.current && typeof playerRef.current.playVideo === "function") {
+      playerRef.current.playVideo();
+    }
+  }, []);
+
   return {
     containerRef,
     videoProgress,
@@ -153,5 +161,6 @@ export function useYouTubePlayer({ videoId, onVideoEnd }: UseYouTubePlayerOption
     isExiting,
     formatTime,
     exitToHome,
+    play,
   };
 }

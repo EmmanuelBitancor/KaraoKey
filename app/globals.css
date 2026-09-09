@@ -25,3 +25,154 @@ body {
 html {
   scroll-behavior: smooth;
 }
+
+/* ========================================
+   TV / Remote Navigation Focus Styles
+   ======================================== */
+
+/* Remove every native focus box/border/outline/ring */
+*:focus,
+*:focus-visible,
+button:focus,
+button:focus-visible,
+input:focus,
+input:focus-visible,
+textarea:focus,
+textarea:focus-visible,
+select:focus,
+select:focus-visible,
+a:focus,
+a:focus-visible,
+[tabindex]:focus,
+[tabindex]:focus-visible,
+[role="button"]:focus,
+[role="button"]:focus-visible {
+  outline: none !important;
+  border-color: transparent !important;
+  box-shadow: none !important;
+  background-image: none !important;
+}
+
+/* Suppress WebKit/Firefox inner focus borders */
+input::-webkit-focus-inner,
+button::-webkit-focus-inner,
+textarea::-webkit-focus-inner,
+select::-webkit-focus-inner {
+  outline: none !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+/* Soft glow indicator for TV focus — no box border */
+*:focus-visible,
+button:focus-visible,
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible,
+a:focus-visible,
+[tabindex]:focus-visible,
+[role="button"]:focus-visible {
+  box-shadow: 0 0 0 4px rgba(255, 107, 0, 0.45) !important;
+}
+
+/* Strong outer glow for TV remote focus visibility */
+button:focus-visible,
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible,
+a:focus-visible,
+[role="button"]:focus-visible {
+  box-shadow: 0 0 0 2px #ffffff, 0 0 0 6px rgba(255, 107, 0, 0.85), 0 0 24px rgba(255, 107, 0, 0.55) !important;
+}
+
+/* Focus state for links and buttons — subtle lift, no border */
+a:focus-visible,
+button:focus-visible {
+  transform: scale(1.05);
+  transition: all 0.15s ease;
+}
+
+/* Input focus enhancement for TV — glow only */
+input:focus-visible,
+textarea:focus-visible {
+  border-color: transparent !important;
+  box-shadow: 0 0 0 2px #ffffff, 0 0 0 5px rgba(255, 107, 0, 0.6), 0 0 20px rgba(255, 107, 0, 0.45) !important;
+}
+
+/* TV navigation indicator — soft pulsing glow */
+.tv-nav-focus {
+  box-shadow: 0 0 0 2px #ffffff, 0 0 0 6px rgba(255, 107, 0, 0.85), 0 0 24px rgba(255, 107, 0, 0.55);
+  animation: tv-nav-pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes tv-nav-pulse {
+  0%, 100% {
+    box-shadow: 0 0 0 2px #ffffff, 0 0 0 6px rgba(255, 107, 0, 0.85), 0 0 24px rgba(255, 107, 0, 0.55);
+  }
+  50% {
+    box-shadow: 0 0 0 2px #ffffff, 0 0 0 10px rgba(255, 107, 0, 0.45), 0 0 30px rgba(255, 107, 0, 0.3);
+  }
+}
+
+/* Back button focus — soft glow, no border */
+.tv-back-btn:focus-visible {
+  outline: none !important;
+  box-shadow: 0 0 0 2px #ffffff, 0 0 0 6px rgba(255, 107, 0, 0.85), 0 0 20px rgba(255, 107, 0, 0.5) !important;
+}
+
+/* Card / Panel focus for TV remote navigation — glow only */
+.tv-card:focus-visible {
+  outline: none !important;
+  box-shadow: 0 0 0 2px #ffffff, 0 0 0 6px rgba(255, 107, 0, 0.85), 0 0 24px rgba(255, 107, 0, 0.55) !important;
+  transform: scale(1.05);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+/* Queue item focus for TV — soft glow */
+.tv-queue-item:focus-visible {
+  outline: none !important;
+  box-shadow: 0 0 0 2px #ffffff, 0 0 0 6px rgba(255, 107, 0, 0.8), 0 0 20px rgba(255, 107, 0, 0.5) !important;
+  background-color: rgba(255, 107, 0, 0.25) !important;
+}
+
+/* Scoreboard / Leaderboard row focus — soft glow */
+.tv-row:focus-visible {
+  outline: none !important;
+  box-shadow: 0 0 0 2px #ffffff, 0 0 0 6px rgba(255, 107, 0, 0.8), 0 0 20px rgba(255, 107, 0, 0.5) !important;
+}
+
+/* Navigation hint text for TV users */
+.tv-nav-hint {
+  position: fixed;
+  bottom: 8px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0, 0, 0, 0.8);
+  color: white;
+  padding: 4px 12px;
+  border-radius: 8px;
+  font-size: 11px;
+  z-index: 9999;
+  pointer-events: none;
+  opacity: 0.7;
+}
+
+/* Ensure images and media don't steal focus */
+img:focus-visible,
+video:focus-visible {
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+/* Prevent layout shift from focus indicator */
+:focus-visible {
+  position: relative;
+}
+
+/* High contrast focus for dark backgrounds — still glow-based */
+@media (prefers-contrast: high) {
+  *:focus-visible {
+    outline: none !important;
+    box-shadow: 0 0 0 6px rgba(255, 107, 0, 0.7) !important;
+  }
+}

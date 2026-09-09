@@ -42,7 +42,8 @@ export default function PlayerEntryList({
               value={player.name}
               onChange={(e) => onNameChange(player.id, e.target.value)}
               placeholder="Player name"
-              className="flex-1 rounded-lg bg-white/5 border border-white/10 px-3 py-2 text-white outline-none focus:border-[#FF6B00] transition"
+              className="flex-1 rounded-lg bg-white/5 border border-white/10 px-3 py-2 text-white"
+              tabIndex={0}
             />
             {player.song && (
               <span className="flex-shrink-0 text-xs text-[#FF6B00] truncate max-w-[160px]">
@@ -51,18 +52,22 @@ export default function PlayerEntryList({
             )}
             <button
               onClick={() => onClear(player.id)}
-              className={`flex-shrink-0 text-xs transition ${
+              className={`flex-shrink-0 text-xs transition tv-card ${
                 player.song
                   ? "text-white/30 hover:text-red-500"
                   : "invisible"
               }`}
+              tabIndex={0}
+              role="button"
               title="Clear song"
             >
               Clear
             </button>
             <button
               onClick={() => onRemove(player.id)}
-              className="flex-shrink-0 text-white/30 hover:text-red-500 transition text-lg leading-none"
+              className="flex-shrink-0 text-white/30 hover:text-red-500 transition text-lg leading-none tv-card"
+              tabIndex={0}
+              role="button"
               title="Remove player"
             >
               ×
@@ -110,7 +115,8 @@ function PlayerSongSearch({
         placeholder="Search and assign a song..."
         value={query}
         onChange={(e) => setQuery(e.target.value)}
-        className="w-full rounded-lg bg-white/5 border border-white/10 px-3 py-2 text-sm text-white placeholder-white/40 outline-none focus:border-[#FF6B00] transition"
+        className="w-full rounded-lg bg-white/5 border border-white/10 px-3 py-2 text-sm text-white placeholder-white/40"
+        tabIndex={0}
       />
       {query && (
         <div className="mt-1 w-full max-h-48 overflow-y-auto rounded-lg bg-[#2a2a2a] border border-white/10 shadow-xl z-10">
@@ -118,7 +124,9 @@ function PlayerSongSearch({
             filtered.map((song) => (
               <div
                 key={song.code}
-                className="flex items-center justify-between px-3 py-2 hover:bg-[#FF6B00]/20 transition border-b border-white/5 last:border-b-0"
+                className="flex items-center justify-between px-3 py-2 hover:bg-[#FF6B00]/20 transition border-b border-white/5 last:border-b-0 tv-card"
+                tabIndex={0}
+                role="button"
               >
                 <div className="min-w-0 flex-1">
                   <p className="text-[#FF6B00] font-bold text-xs">{song.code}</p>
@@ -130,7 +138,9 @@ function PlayerSongSearch({
                     onAssign(player.id, song);
                     setQuery("");
                   }}
-                  className="text-[10px] bg-[#FF6B00] hover:bg-[#e55f00] text-white font-semibold px-2 py-1 rounded transition ml-2"
+                  className="text-[10px] bg-[#FF6B00] hover:bg-[#e55f00] text-white font-semibold px-2 py-1 rounded transition ml-2 tv-card"
+                  tabIndex={0}
+                  role="button"
                 >
                   Assign
                 </button>

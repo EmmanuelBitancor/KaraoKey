@@ -172,8 +172,10 @@ export default function Hero() {
       <div className="absolute bottom-8 right-8 z-20 flex items-center gap-4">
         <button
           onClick={() => router.push("/review")}
-          className="flex items-center gap-2 rounded-full bg-white/10 px-4 py-3 text-white shadow-lg transition hover:bg-white/20"
+          className="flex items-center gap-2 rounded-full bg-white/10 px-4 py-3 text-white shadow-lg transition hover:bg-white/20 tv-card"
           title="Submit Feedback"
+          tabIndex={0}
+          role="button"
         >
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6">
             <path strokeLinecap="round" strokeLinejoin="round" d="M11.48 2.17l2.47 4.94 5.46.79-3.98 3.88.94 5.47-4.9-2.57-4.89 2.57.94-5.47-3.98-3.88 5.46-.79 2.47-4.94z" />
@@ -182,8 +184,10 @@ export default function Hero() {
         </button>
         <button
           onClick={() => router.push("/explore")}
-          className="flex items-center gap-2 rounded-full bg-white/10 px-4 py-3 text-white shadow-lg transition hover:bg-white/20"
+          className="flex items-center gap-2 rounded-full bg-white/10 px-4 py-3 text-white shadow-lg transition hover:bg-white/20 tv-card"
           title="Explore More"
+          tabIndex={0}
+          role="button"
         >
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6">
             <path strokeLinecap="round" strokeLinejoin="round" d="M12 21s-7.5-5.2-9.5-10.2a7.5 7.5 0 0 1 14-3.6 7.5 7.5 0 0 1 4 3.6C19.5 15.8 12 21 12 21Zm0-10a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5Z" />
@@ -192,11 +196,13 @@ export default function Hero() {
         </button>
         <button
           onClick={() => router.push("/songbook")}
-          className="flex items-center gap-2 rounded-full bg-[#FF6B00] px-4 py-3 text-white shadow-lg transition hover:bg-[#e55f00]"
+          className="flex items-center gap-2 rounded-full bg-[#FF6B00] px-4 py-3 text-white shadow-lg transition hover:bg-[#e55f00] tv-card"
           title="Song Book"
+          tabIndex={0}
+          role="button"
         >
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.042A8.967 8.967 0 0 0 6 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 0 1 6 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 0 1 6-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0 0 18 18a8.967 8.967 0 0 0-6 2.292m0-14.25v14.25" />
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.042A8.967 8.967 0 0 0 6 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 0 0 6 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 0 1 6-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0 0 18 18a8.967 8.967 0 0 0-6 2.292m0-14.25v14.25" />
           </svg>
           <span className="text-sm font-semibold">Song Book</span>
         </button>
@@ -206,8 +212,10 @@ export default function Hero() {
       <div className="relative z-10 flex flex-col items-center justify-center min-h-screen gap-8">
         <Link
           href="/"
-          className="text-5xl font-bold tracking-tight text-white sm:text-6xl md:text-7xl lg:text-8xl"
+          className="text-5xl font-bold tracking-tight text-white sm:text-6xl md:text-7xl lg:text-8xl tv-card"
           style={{ fontFamily: "'Ayaha', sans-serif" }}
+          tabIndex={0}
+          role="link"
         >
           Karao<span className="text-[#FF6B00]">KEY</span>
         </Link>
@@ -222,7 +230,6 @@ export default function Hero() {
           onChange={handleChange}
           onKeyDown={handleKeyDown}
           placeholder="0000"
-          autoFocus
           autoComplete="off"
           autoCorrect="off"
           autoCapitalize="off"
@@ -230,8 +237,11 @@ export default function Hero() {
           data-form-type="other"
           data-lpignore="true"
           data-1p-ignore="true"
-          className="w-full max-w-2xl text-center text-8xl sm:text-9xl md:text-[12rem] font-bold bg-transparent border-none outline-none text-[#FF6B00] cursor-text"
+          className="w-full max-w-2xl text-center text-8xl sm:text-9xl md:text-[12rem] font-bold bg-transparent border-none outline-none text-[#FF6B00] cursor-text tv-card"
           style={{ caretColor: "#FF6B00" }}
+          tabIndex={0}
+          role="textbox"
+          aria-label="Enter song code"
         />
 
         {/* Matched Song Display */}

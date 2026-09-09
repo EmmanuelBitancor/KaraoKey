@@ -55,11 +55,13 @@ export default function SongbookTable({
         <div className="flex items-center gap-1">
           <button
             onClick={() => setLetterFilter(null)}
-            className={`flex-shrink-0 px-2 py-1 text-xs font-semibold rounded transition ${
+            className={`flex-shrink-0 px-2 py-1 text-xs font-semibold rounded transition tv-card ${
               letterFilter === null
                 ? "bg-[#FF6B00] text-white"
                 : "bg-white/10 text-white/70 hover:bg-white/20"
             }`}
+            tabIndex={0}
+            role="button"
           >
             All
           </button>
@@ -67,11 +69,13 @@ export default function SongbookTable({
             <button
               key={letter}
               onClick={() => setLetterFilter(letter)}
-              className={`flex-shrink-0 w-7 h-7 text-xs font-semibold rounded transition flex items-center justify-center ${
+              className={`flex-shrink-0 w-7 h-7 text-xs font-semibold rounded transition flex items-center justify-center tv-card ${
                 letterFilter === letter
                   ? "bg-[#FF6B00] text-white"
                   : "bg-white/10 text-white/70 hover:bg-white/20"
               }`}
+              tabIndex={0}
+              role="button"
             >
               {letter}
             </button>
@@ -79,43 +83,45 @@ export default function SongbookTable({
         </div>
       </div>
 
-      <div className="overflow-hidden rounded-lg border border-white/10">
-        <table className="w-full">
-          <thead className="bg-[#FF6B00]">
-            <tr>
-              <th className="px-6 py-4 text-left text-sm font-semibold uppercase tracking-wider">
-                CODE
-              </th>
-              <th className="px-6 py-4 text-left text-sm font-semibold uppercase tracking-wider">
-                Song Name / Title
-              </th>
-              <th className="px-6 py-4 text-left text-sm font-semibold uppercase tracking-wider">
-                Artist
-              </th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-white/10">
-            {loading ? (
-              <tr>
-                <td colSpan={3} className="px-6 py-12 text-center text-white/50">
-                  Loading songs...
-                </td>
-              </tr>
-            ) : paginatedSongs.length > 0 ? (
-              paginatedSongs.map((song, index) => (
-                <tr
-                  key={song.code}
-                  onClick={() =>
-                    router.replace(
-                      `/singzone?code=${song.code}&title=${encodeURIComponent(
-                        song.title
-                      )}&artist=${encodeURIComponent(song.artist)}&youtubeId=${encodeURIComponent(song.youtube_id)}`
-                    )
-                  }
-                  className={`${
-                    index % 2 === 0 ? "bg-white/5" : "bg-transparent"
-                  } hover:bg-[#FF6B00]/20 cursor-pointer transition`}
-                >
+          <div className="overflow-hidden rounded-lg border border-white/10">
+            <table className="w-full">
+              <thead className="bg-[#FF6B00]">
+                <tr>
+                  <th className="px-6 py-4 text-left text-sm font-semibold uppercase tracking-wider">
+                    CODE
+                  </th>
+                  <th className="px-6 py-4 text-left text-sm font-semibold uppercase tracking-wider">
+                    Song Name / Title
+                  </th>
+                  <th className="px-6 py-4 text-left text-sm font-semibold uppercase tracking-wider">
+                    Artist
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-white/10">
+                {loading ? (
+                  <tr>
+                    <td colSpan={3} className="px-6 py-12 text-center text-white/50">
+                      Loading songs...
+                    </td>
+                  </tr>
+                ) : paginatedSongs.length > 0 ? (
+                  paginatedSongs.map((song, index) => (
+                    <tr
+                      key={song.code}
+                      onClick={() =>
+                        router.replace(
+                          `/singzone?code=${song.code}&title=${encodeURIComponent(
+                            song.title
+                          )}&artist=${encodeURIComponent(song.artist)}&youtubeId=${encodeURIComponent(song.youtube_id)}`
+                        )
+                      }
+                      className={`${
+                        index % 2 === 0 ? "bg-white/5" : "bg-transparent"
+                      } hover:bg-[#FF6B00]/20 cursor-pointer transition tv-card`}
+                      tabIndex={0}
+                      role="button"
+                    >
                   <td className="px-6 py-4 text-[#FF6B00] font-bold">
                     {song.code}
                   </td>
@@ -140,7 +146,9 @@ export default function SongbookTable({
           <button
             onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
             disabled={currentPage === 1}
-            className="px-3 py-1 rounded bg-white/10 text-white/70 hover:bg-white/20 disabled:opacity-50 disabled:cursor-not-allowed transition"
+            className="px-3 py-1 rounded bg-white/10 text-white/70 hover:bg-white/20 disabled:opacity-50 disabled:cursor-not-allowed transition tv-card"
+            tabIndex={0}
+            role="button"
           >
             Prev
           </button>
@@ -150,7 +158,9 @@ export default function SongbookTable({
           <button
             onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
             disabled={currentPage === totalPages}
-            className="px-3 py-1 rounded bg-white/10 text-white/70 hover:bg-white/20 disabled:opacity-50 disabled:cursor-not-allowed transition"
+            className="px-3 py-1 rounded bg-white/10 text-white/70 hover:bg-white/20 disabled:opacity-50 disabled:cursor-not-allowed transition tv-card"
+            tabIndex={0}
+            role="button"
           >
             Next
           </button>

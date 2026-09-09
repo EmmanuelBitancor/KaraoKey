@@ -16,7 +16,9 @@ export default function CompetitionHeader({
       <div className="mx-auto max-w-6xl flex items-center justify-between">
         <button
           onClick={onBack}
-          className="flex items-center gap-2 text-white/70 hover:text-white transition"
+          className="flex items-center gap-2 text-white/70 hover:text-white transition tv-back-btn"
+          tabIndex={0}
+          role="button"
         >
           <span className="text-xl">←</span>
           <span className="text-sm">Back</span>

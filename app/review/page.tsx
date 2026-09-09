@@ -77,7 +77,7 @@ export default function ReviewPage() {
   return (
     <div className="min-h-screen bg-[#0D0D0D] text-white">
       <div className="mx-auto max-w-6xl px-4 py-16">
-        <Link href="/" className="text-[#FF6B00] hover:underline text-sm mb-6 inline-block">
+        <Link href="/" className="text-[#FF6B00] hover:underline text-sm mb-6 inline-block tv-card">
           &larr; Back to home
         </Link>
 
@@ -85,7 +85,9 @@ export default function ReviewPage() {
           <h1 className="text-3xl font-bold">Feedback</h1>
           <button
             onClick={() => setShowForm(true)}
-            className="px-4 py-2 rounded-lg bg-[#FF6B00] text-white font-semibold hover:bg-[#e55f00] transition"
+            className="px-4 py-2 rounded-lg bg-[#FF6B00] text-white font-semibold hover:bg-[#e55f00] transition tv-card"
+            tabIndex={0}
+            role="button"
           >
             Write a Review
           </button>
@@ -131,24 +133,27 @@ export default function ReviewPage() {
               <form onSubmit={handleSubmit} className="flex flex-col gap-5">
                 <div>
                   <label className="block text-sm text-white/50 mb-1">Name (please don&lsquo;t use your real name)</label>
-                  <input
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    placeholder="Your name"
-                    className="w-full px-4 py-2 rounded-lg bg-white/5 border border-white/10 text-white outline-none focus:border-[#FF6B00] transition"
-                  />
+                   <input
+                     value={name}
+                     onChange={(e) => setName(e.target.value)}
+                     placeholder="Your name"
+                     className="w-full px-4 py-2 rounded-lg bg-white/5 border border-white/10 text-white"
+                     tabIndex={0}
+                   />
                 </div>
 
                 <div>
                   <label className="block text-sm text-white/50 mb-1">Rating</label>
                   <div className="flex gap-2">
                     {[1, 2, 3, 4, 5].map((n) => (
-                      <button
-                        key={n}
-                        type="button"
-                        onClick={() => setRating(n === rating ? 0 : n)}
-                        className="transition-transform hover:scale-110"
-                      >
+<button
+                         key={n}
+                         type="button"
+                         onClick={() => setRating(n === rating ? 0 : n)}
+                         className="transition-transform hover:scale-110 tv-card"
+                         tabIndex={0}
+                         role="button"
+                       >
                         <svg
                           xmlns="http://www.w3.org/2000/svg"
                           viewBox="0 0 24 24"
@@ -170,29 +175,33 @@ export default function ReviewPage() {
 
                 <div>
                   <label className="block text-sm text-white/50 mb-1">Song Suggestion</label>
-                  <input
-                    value={suggestion}
-                    onChange={(e) => setSuggestion(e.target.value)}
-                    placeholder="Song title / artist..."
-                    className="w-full px-4 py-2 rounded-lg bg-white/5 border border-white/10 text-white outline-none focus:border-[#FF6B00] transition"
-                  />
+                   <input
+                     value={suggestion}
+                     onChange={(e) => setSuggestion(e.target.value)}
+                     placeholder="Song title / artist..."
+                     className="w-full px-4 py-2 rounded-lg bg-white/5 border border-white/10 text-white"
+                     tabIndex={0}
+                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm text-white/50 mb-1">Your Review</label>
+<label className="block text-sm text-white/50 mb-1">Your Review</label>
                   <textarea
                     value={comment}
                     onChange={(e) => setComment(e.target.value)}
                     rows={4}
                     placeholder="Tell us what you thought..."
-                    className="w-full px-4 py-2 rounded-lg bg-white/5 border border-white/10 text-white outline-none focus:border-[#FF6B00] transition resize-y"
+                    className="w-full px-4 py-2 rounded-lg bg-white/5 border border-white/10 text-white resize-y"
+                    tabIndex={0}
                   />
                 </div>
 
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="self-start px-6 py-3 rounded-lg bg-[#FF6B00] text-white font-semibold hover:bg-[#e55f00] transition disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="self-start px-6 py-3 rounded-lg bg-[#FF6B00] text-white font-semibold hover:bg-[#e55f00] transition disabled:opacity-50 disabled:cursor-not-allowed tv-card"
+                  tabIndex={0}
+                  role="button"
                 >
                   {submitting ? "Submitting..." : "Submit"}
                 </button>

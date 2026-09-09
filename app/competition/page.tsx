@@ -110,7 +110,9 @@ export default function CompetitionSetupPage() {
         <div className="text-center">
           <button
             onClick={openModal}
-            className="inline-flex items-center gap-2 rounded-full bg-[#FF6B00] px-6 py-3 text-sm font-bold text-white shadow-lg transition hover:bg-[#e55f00]"
+            className="inline-flex items-center gap-2 rounded-full bg-[#FF6B00] px-6 py-3 text-sm font-bold text-white shadow-lg transition hover:bg-[#e55f00] tv-card"
+            tabIndex={0}
+            role="button"
           >
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
               <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />

@@ -184,7 +184,9 @@ export default function RoulettePage() {
         <div className="mb-8 flex items-center justify-between">
           <button
             onClick={() => router.push("/explore")}
-            className="flex items-center gap-2 text-white/70 hover:text-white transition"
+            className="flex items-center gap-2 text-white/70 hover:text-white transition tv-back-btn"
+            tabIndex={0}
+            role="button"
           >
             <span className="text-xl">←</span>
             <span className="text-sm">Back</span>
@@ -225,7 +227,9 @@ export default function RoulettePage() {
                 <button
                   onClick={spinWheel}
                   disabled={spinning || songs.length === 0}
-                  className="px-8 py-4 rounded-full bg-[#FF6B00] text-white font-bold text-lg shadow-lg transition hover:bg-[#e55f00] disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="px-8 py-4 rounded-full bg-[#FF6B00] text-white font-bold text-lg shadow-lg transition hover:bg-[#e55f00] disabled:opacity-50 disabled:cursor-not-allowed tv-card"
+                  tabIndex={0}
+                  role="button"
                 >
                   {spinning ? "Spinning..." : "Spin the Wheel"}
                 </button>
@@ -247,13 +251,17 @@ export default function RoulettePage() {
               <div className="flex items-center gap-2 flex-shrink-0">
                 <button
                   onClick={() => setShowMic((prev) => !prev)}
-                  className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-white/10"
+                  className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-white/10 tv-card"
+                  tabIndex={0}
+                  role="button"
                 >
                   {showMic ? "Hide Mic" : "Show Mic"}
                 </button>
                 <button
                   onClick={resetRoulette}
-                  className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-white/10"
+                  className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-white/10 tv-card"
+                  tabIndex={0}
+                  role="button"
                 >
                   New Spin
                 </button>
@@ -279,7 +287,9 @@ export default function RoulettePage() {
             <div className="mt-4 flex gap-3 justify-center">
               <button
                 onClick={resetRoulette}
-                className="px-6 py-3 rounded-full bg-[#FF6B00] text-white font-bold text-sm shadow-lg transition hover:bg-[#e55f00]"
+                className="px-6 py-3 rounded-full bg-[#FF6B00] text-white font-bold text-sm shadow-lg transition hover:bg-[#e55f00] tv-card"
+                tabIndex={0}
+                role="button"
               >
                 New Spin
               </button>
