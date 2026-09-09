@@ -50,19 +50,15 @@ export default function SingzoneQueuePanel({
   });
 
   return (
-    <div
-      className={`bg-[#1a1a1a] border-l border-white/10 flex flex-col transition-all duration-300 ${
-        isPanelOpen ? "w-80" : "w-0 border-0 overflow-hidden"
-      }`}
-    >
-      <div className="p-4 border-b border-white/10 flex items-center justify-between">
+    <div className="bg-[#1a1a1a] border-l border-white/10 flex flex-col transition-all duration-300">
+      <div className="p-3 md:p-4 border-b border-white/10 flex items-center justify-between">
         <div>
-          <h2 className="text-lg font-bold text-white">Song Queue</h2>
-          <p className="text-sm text-white/50">{queue.length} song(s) in queue</p>
+          <h2 className="text-base md:text-lg font-bold text-white">Song Queue</h2>
+          <p className="text-xs md:text-sm text-white/50">{queue.length} song(s) in queue</p>
         </div>
         <button
           onClick={onTogglePanel}
-          className="text-white/50 hover:text-white transition tv-card"
+          className="text-white/50 hover:text-white transition tv-card hidden md:block"
           tabIndex={0}
           role="button"
           aria-label={isPanelOpen ? "Close panel" : "Open panel"}
@@ -72,9 +68,9 @@ export default function SingzoneQueuePanel({
       </div>
 
       {/* Search Bar */}
-      <div className="p-4 border-b border-white/10">
+      <div className="p-3 md:p-4 border-b border-white/10">
         {/* Letter Filter */}
-        <p className="text-white/50 text-xs mb-2">Filter by letter:</p>
+        <p className="text-white/50 text-xs mb-2 hidden md:block">Filter by letter:</p>
         <div className="flex items-center gap-1 overflow-x-auto pb-1">
           <button
             onClick={() => onLetterFilterChange(null)}
@@ -110,7 +106,7 @@ export default function SingzoneQueuePanel({
           placeholder="Search code, title, or artist..."
           value={searchQuery}
           onChange={(e) => onSearchChange(e.target.value)}
-          className="w-full rounded-lg bg-white/10 px-4 py-3 text-white placeholder-white/50"
+          className="w-full rounded-lg bg-white/10 px-3 py-2 text-sm md:text-base text-white placeholder-white/50"
           tabIndex={0}
         />
 

@@ -137,7 +137,7 @@ export default function CompetitionSingzonePage() {
         onBack={() => router.push("/competition")}
       />
 
-      <div className="mx-auto max-w-6xl px-4 py-8">
+      <div className="mx-auto max-w-6xl px-3 py-4 md:px-4 md:py-8">
         {gameOver ? (
           <CompetitionRoundResult
             scores={scores}
@@ -145,26 +145,26 @@ export default function CompetitionSingzonePage() {
             onHome={() => router.push("/explore")}
           />
         ) : (
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6">
             {/* Left: Video + Mic */}
             <div className="lg:col-span-2">
-              <div className="mb-4 flex items-start justify-between gap-4">
+              <div className="mb-3 md:mb-4 flex items-start justify-between gap-3">
                 <div className="min-w-0">
-                  <p className="text-sm text-white/50">
+                  <p className="text-xs md:text-sm text-white/50">
                     Round {currentRound} of {players.length}
                   </p>
-                  <h2 className="text-3xl font-bold">
+                  <h2 className="text-xl md:text-3xl font-bold">
                     {currentPlayer?.name}
                     <span className="text-[#FF6B00]"> is up!</span>
                   </h2>
-                  <p className="text-white/60 mt-1">
+                  <p className="text-white/60 mt-1 text-xs md:text-sm">
                     Sing: {currentPlayer?.code} · {currentPlayer?.title} — {currentPlayer?.artist}
                   </p>
                 </div>
 
                 <button
                   onClick={() => setShowMicBar((prev) => !prev)}
-                  className="flex-shrink-0 rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-white/10 tv-card"
+                  className="flex-shrink-0 rounded-full border border-white/10 bg-white/5 px-2 py-1 md:px-3 md:py-1.5 text-xs font-semibold text-white transition hover:bg-white/10 tv-card"
                   tabIndex={0}
                   role="button"
                   title={showMicBar ? "Hide microphone" : "Show microphone"}
@@ -174,7 +174,7 @@ export default function CompetitionSingzonePage() {
               </div>
 
               <div className="relative">
-                <div className={showMicBar ? "pr-16" : ""}>
+                <div className={showMicBar ? "pr-12 md:pr-16" : ""}>
                   <CompetitionVideoPlayer
                     videoId={currentPlayer.youtubeId}
                     score={scores[currentPlayerIndex]?.score ?? null}
@@ -183,7 +183,7 @@ export default function CompetitionSingzonePage() {
                 </div>
 
                 {showMicBar && (
-                  <div className="absolute right-0 top-0 bottom-0 w-16">
+                  <div className="absolute right-0 top-0 bottom-0 w-12 md:w-16">
                     <CompetitionMicBar />
                   </div>
                 )}

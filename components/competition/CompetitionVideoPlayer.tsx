@@ -60,6 +60,7 @@ export default function CompetitionVideoPlayer({
   const playerRef = useRef<any>(null);
   const [apiReady, setApiReady] = useState(false);
   const [micError, setMicError] = useState<string | null>(null);
+  const [videoError, setVideoError] = useState<string | null>(null);
 
   const onScoreRef = useRef(onScore);
   onScoreRef.current = onScore;
@@ -136,6 +137,11 @@ export default function CompetitionVideoPlayer({
 
   const startMicrophone = useCallback(async () => {
     try {
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        setMicError("Microphone unavailable in this browser");
+        return;
+      }
+
       const stream = await navigator.mediaDevices.getUserMedia({
         audio: {
           echoCancellation: true,
@@ -264,6 +270,19 @@ export default function CompetitionVideoPlayer({
             }
           }
         },
+        onError: (event: any) => {
+          let message = "Video playback error.";
+          if (event.data === 101 || event.data === 150) {
+            message = "This video is blocked from being played here.";
+          } else if (event.data === 100) {
+            message = "This video was removed or is unavailable.";
+          } else if (event.data === 2) {
+            message = "Invalid video ID.";
+          } else if (event.data === 5) {
+            message = "HTML5 player error.";
+          }
+          setVideoError(message);
+        },
       },
     });
 
@@ -291,6 +310,14 @@ export default function CompetitionVideoPlayer({
     <div className="relative w-full">
       <div className="w-full aspect-video rounded-xl overflow-hidden shadow-2xl bg-black">
         <div ref={containerRef} className="w-full h-full" />
+        {videoError && (
+          <div className="absolute inset-0 flex items-center justify-center bg-black/80">
+            <div className="text-center px-4">
+              <p className="text-red-400 font-semibold text-sm md:text-base">Playback Unavailable</p>
+              <p className="text-white/70 text-xs md:text-sm mt-2 max-w-md">{videoError}</p>
+            </div>
+          </div>
+        )}
       </div>
 
       {micError && (

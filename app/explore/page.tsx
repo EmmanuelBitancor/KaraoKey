@@ -54,20 +54,20 @@ export default function ExplorePage() {
           &larr; Back to home
         </Link>
 
-        <div className="text-center mb-12">
-          <h1 className="text-4xl font-bold tracking-tight sm:text-5xl">
+        <div className="text-center mb-8 md:mb-12">
+          <h1 className="text-3xl md:text-4xl font-bold tracking-tight sm:text-5xl">
             Explore <span className="text-[#FF6B00]">Modes</span>
           </h1>
-          <p className="mt-4 text-white/50 text-lg">
+          <p className="mt-3 md:mt-4 text-white/50 text-base md:text-lg">
             Pick a game mode and take your karaoke to the next level.
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
           {modes.map((mode) => (
             <div
               key={mode.id}
-              className={`relative flex flex-col gap-4 rounded-2xl border p-6 transition-all duration-200 cursor-pointer tv-card ${
+              className={`relative flex flex-col gap-3 md:gap-4 rounded-2xl border p-4 md:p-6 transition-all duration-200 cursor-pointer tv-card ${
                 selectedMode === mode.id
                   ? "border-[#FF6B00] bg-[#FF6B00]/10 shadow-lg shadow-[#FF6B00]/20"
                   : "border-white/10 bg-[#1a1a1a] hover:border-white/30 hover:bg-[#222]"
@@ -78,18 +78,18 @@ export default function ExplorePage() {
               aria-label={mode.title}
             >
               <div className="flex items-center justify-between">
-                <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-[#FF6B00]/15 text-[#FF6B00]">
+                <div className="flex h-10 w-10 md:h-14 md:w-14 items-center justify-center rounded-xl bg-[#FF6B00]/15 text-[#FF6B00]">
                   {mode.icon}
                 </div>
                 {!mode.active && (
-                  <span className="rounded-full bg-white/10 px-3 py-1 text-xs font-semibold text-white/70">
+                  <span className="rounded-full bg-white/10 px-2 py-0.5 md:px-3 md:py-1 text-[10px] md:text-xs font-semibold text-white/70">
                     Coming Soon
                   </span>
                 )}
               </div>
 
-              <h3 className="text-xl font-bold">{mode.title}</h3>
-              <p className="text-white/50 text-sm leading-relaxed flex-1">{mode.description}</p>
+              <h3 className="text-lg md:text-xl font-bold">{mode.title}</h3>
+              <p className="text-white/50 text-xs md:text-sm leading-relaxed flex-1">{mode.description}</p>
 
               {mode.active ? (
                 <button
@@ -101,14 +101,14 @@ export default function ExplorePage() {
                       router.push("/roulette");
                     }
                   }}
-                  className="self-start mt-2 px-5 py-2.5 rounded-lg bg-[#FF6B00] text-white font-semibold text-sm hover:bg-[#e55f00] transition disabled:opacity-50 disabled:cursor-not-allowed tv-card"
+                  className="self-start mt-1 md:mt-2 px-4 py-1.5 md:px-5 md:py-2.5 rounded-lg bg-[#FF6B00] text-white font-semibold text-xs md:text-sm hover:bg-[#e55f00] transition disabled:opacity-50 disabled:cursor-not-allowed tv-card"
                   tabIndex={0}
                   role="button"
                 >
                   Play Now
                 </button>
               ) : (
-                <span className="self-start mt-2 px-5 py-2.5 rounded-lg bg-white/5 text-white/40 text-sm font-semibold">
+                <span className="self-start mt-1 md:mt-2 px-4 py-1.5 md:px-5 md:py-2.5 rounded-lg bg-white/5 text-white/40 text-xs md:text-sm font-semibold">
                   Coming Soon
                 </span>
               )}

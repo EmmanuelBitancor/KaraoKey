@@ -169,10 +169,10 @@ export default function Hero() {
       <div className="absolute inset-0 bg-black/70" />
 
       {/* Floating buttons */}
-      <div className="absolute bottom-8 right-8 z-20 flex items-center gap-4">
+      <div className="absolute bottom-8 left-8 right-8 z-20 flex flex-col md:flex-row md:items-center md:justify-end gap-4">
         <button
           onClick={() => router.push("/review")}
-          className="flex items-center gap-2 rounded-full bg-white/10 px-4 py-3 text-white shadow-lg transition hover:bg-white/20 tv-card"
+          className="flex items-center gap-2 rounded-full bg-white/10 px-4 py-3 text-white shadow-lg transition hover:bg-white/20 tv-card md:w-auto w-full justify-center"
           title="Submit Feedback"
           tabIndex={0}
           role="button"
@@ -180,11 +180,11 @@ export default function Hero() {
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6">
             <path strokeLinecap="round" strokeLinejoin="round" d="M11.48 2.17l2.47 4.94 5.46.79-3.98 3.88.94 5.47-4.9-2.57-4.89 2.57.94-5.47-3.98-3.88 5.46-.79 2.47-4.94z" />
           </svg>
-          <span className="text-sm font-semibold">Submit Feedback</span>
+          <span className="text-sm font-semibold hidden sm:inline">Submit Feedback</span>
         </button>
         <button
           onClick={() => router.push("/explore")}
-          className="flex items-center gap-2 rounded-full bg-white/10 px-4 py-3 text-white shadow-lg transition hover:bg-white/20 tv-card"
+          className="flex items-center gap-2 rounded-full bg-white/10 px-4 py-3 text-white shadow-lg transition hover:bg-white/20 tv-card md:w-auto w-full justify-center"
           title="Explore More"
           tabIndex={0}
           role="button"
@@ -192,11 +192,11 @@ export default function Hero() {
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6">
             <path strokeLinecap="round" strokeLinejoin="round" d="M12 21s-7.5-5.2-9.5-10.2a7.5 7.5 0 0 1 14-3.6 7.5 7.5 0 0 1 4 3.6C19.5 15.8 12 21 12 21Zm0-10a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5Z" />
           </svg>
-          <span className="text-sm font-semibold">Explore More</span>
+          <span className="text-sm font-semibold hidden sm:inline">Explore More</span>
         </button>
         <button
           onClick={() => router.push("/songbook")}
-          className="flex items-center gap-2 rounded-full bg-[#FF6B00] px-4 py-3 text-white shadow-lg transition hover:bg-[#e55f00] tv-card"
+          className="flex items-center gap-2 rounded-full bg-[#FF6B00] px-4 py-3 text-white shadow-lg transition hover:bg-[#e55f00] tv-card md:w-auto w-full justify-center"
           title="Song Book"
           tabIndex={0}
           role="button"
@@ -204,7 +204,7 @@ export default function Hero() {
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6">
             <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.042A8.967 8.967 0 0 0 6 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 0 0 6 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 0 1 6-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0 0 18 18a8.967 8.967 0 0 0-6 2.292m0-14.25v14.25" />
           </svg>
-          <span className="text-sm font-semibold">Song Book</span>
+          <span className="text-sm font-semibold hidden sm:inline">Song Book</span>
         </button>
       </div>
 

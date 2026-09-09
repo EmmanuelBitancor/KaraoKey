@@ -14,8 +14,10 @@ export function TvNavigationProvider({
   const router = useRouter();
   const pathname = usePathname();
 
+  const isMobile = typeof window !== "undefined" && /Android|iPhone|iPad|iPod|webOS/i.test(navigator.userAgent);
+
   const { refresh } = useTvNavigation({
-    enableArrowKeys: true,
+    enableArrowKeys: !isMobile,
     enableNumberKeys: false,
     onEscape: () => {
       try {
