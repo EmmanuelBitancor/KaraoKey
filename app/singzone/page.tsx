@@ -161,8 +161,8 @@ function SingzoneContent() {
     // score is handled internally by SingzoneScoring
   }, []);
 
-  return (
-<div className={`min-h-screen bg-[#0D0D0D] text-white flex flex-col md:flex-row relative transition-opacity duration-500 ${
+return (
+    <div className={`min-h-screen bg-[#0D0D0D] text-white flex flex-col md:flex-row relative transition-opacity duration-500 ${
         isExiting ? "opacity-0" : "opacity-100"
       }`}>
       {/* Main Content */}
@@ -205,34 +205,45 @@ function SingzoneContent() {
         </button>
       )}
 
-      {/* Mobile queue toggle */}
-      <button
-        onClick={() => setIsPanelOpen(!isPanelOpen)}
-        className="md:hidden fixed bottom-4 right-4 bg-[#FF6B00] text-white p-3 rounded-full shadow-lg z-30 tv-card"
-        tabIndex={0}
-        role="button"
-        aria-label="Toggle queue"
-      >
-        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6">
-          <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
-        </svg>
-      </button>
+      {/* Mobile queue toggle - only show when panel is CLOSED */}
+      {!isPanelOpen && (
+        <button
+          onClick={() => setIsPanelOpen(true)}
+          className="md:hidden fixed bottom-4 right-4 bg-[#FF6B00] text-white p-3 rounded-full shadow-lg z-30 tv-card"
+          tabIndex={0}
+          role="button"
+          aria-label="Open queue"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
+          </svg>
+        </button>
+      )}
+
+      {/* Backdrop for mobile - must be sibling to panel for proper z-index */}
+      {isPanelOpen && (
+        <div
+          className="fixed inset-0 z-20 md:hidden bg-black/50"
+          onClick={() => setIsPanelOpen(false)}
+        />
+      )}
 
       {/* Queue Panel - sidebar on desktop, overlay on mobile */}
       <div
         className={`
-          fixed inset-0 z-20 md:relative md:z-auto
+          fixed inset-0 z-30 md:relative md:z-auto
           flex flex-col bg-[#1a1a1a] md:bg-transparent
           transition-all duration-300 ease-in-out
-          ${isPanelOpen ? "translate-x-0" : "translate-x-full md:translate-x-0 md:w-0 md:border-0 md:overflow-hidden"}
-          md:border-l md:border-white/10
-          w-full md:w-80
+          ${isPanelOpen
+            ? "translate-x-0 w-full md:w-80"
+            : "translate-x-full md:w-0 md:border-0 md:overflow-hidden"}
+          ${isPanelOpen ? "md:border-l md:border-white/10" : ""}
         `}
       >
-        {/* Mobile close button */}
+        {/* Mobile close button - must be above content (z-20) */}
         <button
           onClick={() => setIsPanelOpen(false)}
-          className="md:hidden absolute top-4 right-4 text-white/50 hover:text-white transition tv-card z-10"
+          className="md:hidden absolute top-4 right-4 text-white/50 hover:text-white transition tv-card z-30"
           tabIndex={0}
           role="button"
           aria-label="Close panel"
@@ -241,14 +252,6 @@ function SingzoneContent() {
             <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
           </svg>
         </button>
-
-        {/* Backdrop for mobile */}
-        {isPanelOpen && (
-          <div
-            className="md:hidden fixed inset-0 bg-black/50 z-10"
-            onClick={() => setIsPanelOpen(false)}
-          />
-        )}
 
         <div className="flex-1 overflow-y-auto relative z-20">
           <SingzoneQueuePanel
